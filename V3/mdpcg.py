@@ -14,7 +14,7 @@ import networkx as nx
 
 class mdpcg:
 #--------------constructor-------------------------------
-    def __init__(self, graph, Time, strictlyConvex = True):
+    def __init__(self, Time, strictlyConvex = True):
         #------------------------ MDP problem Parameters ----------------
         self.R = None; # rewards matrix 
         self.C = None; # constant part of the reward
