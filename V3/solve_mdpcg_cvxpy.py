@@ -4,7 +4,7 @@ Created on Fri Aug  2 18:10:31 2019
 
 @author: craba
 """
-import mdpcg as mrg
+import gameSolvers.cvx as cvxGame
 import util.mdp as mdp
 
 import numpy as np
@@ -12,9 +12,8 @@ import networkx as nx
 import matplotlib.pyplot as plt
 Time = 20;
 
-sGame = mrg.mdpcg(Time);
-seattleGraph=sGame("G");
-sGame.setQuad();
+sGame = cvxGame.cvxGame(Time);
+seattleGraph=sGame.G;
 #nx.draw(seattleGraph, pos = sGame("graphPos"),with_labels=True);
 #plt.show()
 #p0 = np.ones((seattleGraph.number_of_nodes()))/seattleGraph.number_of_nodes();
@@ -32,8 +31,8 @@ p0[11] = 1./residentialNum;
 print ("Solving primal unconstrained case");
 optRes, mdpRes = sGame.solve(p0, verbose=False,returnDual=False);
 mdp.drawOptimalPopulation(Time,
-                          sGame("graphPos"),
-                          sGame("G"),
+                          sGame.graphPos,
+                          sGame.G,
                           optRes,
                           startAtOne = True,
                           numPlayers = 60.);
@@ -42,8 +41,8 @@ cState = 6;
 sGame.setConstrainedState(cState, 10, isLB = True);
 print ("Solving constrained case, state 7 >= 0.5 case");
 optCRes = sGame.solveWithConstraint(p0,verbose = False);
-print ("optimal dual: ", sGame("optDual"))
-print ("lower bound" , sGame("lowerBound"))
+print ("optimal dual: ", sGame.optimalDual)
+print ("lower bound" , sGame.stateLB)
 #mdp.drawOptimalPopulation(Time,
 #                          sGame("graphPos"),
 #                          sGame("G"),
@@ -126,7 +125,7 @@ plt.ylabel("Driver Density")
 #plt.savefig('test.pdf');
 #------------------ toll value ------------------------#
 plt.figure();
-plt.plot(timeLine[start+3:], sGame("optDual"), linewidth = 2);
+plt.plot(timeLine[start+3:], sGame.optimalDual, linewidth = 2);
 plt.xlabel("Time");
 plt.ylabel("Toll Value on State 7");
 plt.grid();
@@ -142,7 +141,7 @@ ax1.plot(timeLine[start:],exampleTraj2[start:],label = "state 2 constrained",lin
 plt.xlabel('Time');
 plt.ylabel("Driver Density")
 #ax2.plot(timeLine[0:3], np.zeros(3), linewidth = 2, color = blue);
-ax2.plot(timeLine[start:], np.concatenate((np.zeros(3),sGame("optDual"))), linewidth = 2, color = blue);
+ax2.plot(timeLine[start:], np.concatenate((np.zeros(3),sGame.optimalDual)), linewidth = 2, color = blue);
 plt.ylabel("Toll Value")
 ax1.grid();
 ax2.grid();
@@ -156,7 +155,7 @@ plt.plot(timeLine[start:],traj[start:],label = r"$s_7$ unconstrained",linewidth 
 plt.plot(timeLine[start:],cTraj[start:],label = r"$s_7$ constrained",linewidth = 2,color =blue); 
 plt.plot(timeLine[start:],exampleTraj1[start:],label = r"$s_2$ unconstrained",linewidth = 2, linestyle = "-.", color =orange); 
 plt.plot(timeLine[start:],exampleTraj2[start:],label = r"$s_2$ constrained",linewidth = 2,color =orange);
-plt.plot(timeLine[start:],np.concatenate((np.zeros(3),sGame("optDual")))/60., label = "toll charged", linestyle = ":", linewidth = 2, color = 'k');
+plt.plot(timeLine[start:],np.concatenate((np.zeros(3),sGame.optimalDual))/60., label = "toll charged", linestyle = ":", linewidth = 2, color = 'k');
 plt.grid();
 plt.xlabel('Time'); 
 plt.ylabel('Density');  
@@ -198,7 +197,7 @@ fullW = 20;
 #nx.draw_networkx_nodes(sGame("G"), pos=sGame("graphPos"), node_size=20*timeAveragePos, node_color='c',with_labels=True, font_weight='bold',alpha = 0.5, facecolors = 'None');
 #nx.draw(sGame("G"),sGame("graphPos"),node_size=5*timeAverageNeg,node_color='r',with_labels=True, font_weight='bold',alpha = 1);
 #nx.draw_networkx_nodes(sGame("G"), pos=sGame("graphPos"), node_size= 500, node_color=timeAveragePos,alpha = 0.8, cmap=plt.cm.Blues);
-nx.draw_networkx_nodes(sGame("G"), pos=sGame("graphPos"), node_size= 500, node_color=timeAverageNeg,alpha = 0.8, cmap=plt.cm.Reds);
-nx.draw(sGame("G"),sGame("graphPos"),node_size=1,node_color='none',with_labels=True, font_weight='bold',alpha = 0.8)  
+nx.draw_networkx_nodes(sGame.G, pos=sGame.graphPos, node_size= 500, node_color=timeAverageNeg,alpha = 0.8, cmap=plt.cm.Reds);
+nx.draw(sGame.G,sGame.graphPos,node_size=1,node_color='none',with_labels=True, font_weight='bold',alpha = 0.8)  
 plt.show();    
     
