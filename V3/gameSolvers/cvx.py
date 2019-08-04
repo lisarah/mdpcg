@@ -9,7 +9,7 @@ import util.mdp as mdp
 import util.utilities as ut
 import cvxpy as cvx
 
-import mdpcg as mdpcg
+import gameSolvers.mdpcg as mdpcg
 class cvxGame(mdpcg.game):
     #--------------- CVX Parameters  ---------------------
     yijt = None;
@@ -53,7 +53,7 @@ class cvxGame(mdpcg.game):
                          for i in range(self.States) ]) 
                     for j in range(self.Actions)]) 
                for t in range(self.Time)]) \
-                   + sum([sum([sum([(self.C[i,j,t])*y_ijt[(i,j,t)]
+                   - sum([sum([sum([(self.C[i,j,t])*y_ijt[(i,j,t)]
                          for i in range(self.States) ]) 
                     for j in range(self.Actions)]) 
                for t in range(self.Time)]);
@@ -62,7 +62,7 @@ class cvxGame(mdpcg.game):
                          for i in range(self.States) ]) 
                     for j in range(self.Actions)]) 
                for t in range(self.Time)]) \
-                   + sum([sum([sum([(self.C[i,j,t])*y_ijt[(i,j,t)]
+                   - sum([sum([sum([(self.C[i,j,t])*y_ijt[(i,j,t)]
                          for i in range(self.States) ]) 
                     for j in range(self.Actions)]) 
                for t in range(self.Time)]);

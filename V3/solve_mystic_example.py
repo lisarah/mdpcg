@@ -10,6 +10,9 @@ from mystic.solvers import fmin_powell, fmin
 from mystic.models import rosen
 #tools
 from mystic.monitors import VerboseMonitor
+#memory freeing 
+import gc
+gc.collect();
 
 print ("powell's method")
 print ("===============")

@@ -4,7 +4,7 @@ Created on Sat Aug  3 16:09:00 2019
 
 @author: craba
 """
-import mdpcg as mdpcg
+import gameSolvers.mdpcg as mdpcg
 import numpy as np
 from mystic.solvers import fmin_powell
 from mystic.monitors import VerboseMonitor
@@ -28,7 +28,7 @@ class bilevel(mdpcg.game):
     def obj(self, yijt):
         yTens = np.reshape(yijt, (self.states, self.actions, self.Time));
         F = 0.5*np.multiply(np.multiply(yTens, self.R), yTens) \
-            + np.multiply(self.C, yTens);
+             + np.multiply(self.C, yTens);
         return np.sum(F);
     
     def constraints(self, yijt):
@@ -70,4 +70,6 @@ class bilevel(mdpcg.game):
         y0 = self.p02yijt(p0) ;        
         stepMon = VerboseMonitor(1);
         solution = fmin_powell(self.obj, np.reshape(y0,[self.states*self.actions*self.Time]), constraints = self.constraints, itermon = stepMon)
-        print (solution);
+        
+        
+        return solution;
