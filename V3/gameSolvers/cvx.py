@@ -5,11 +5,10 @@ Created on Sat Aug  3 15:59:58 2019
 @author: craba
 """
 import util.mdp as mdp
-import util.figureGeneration as fG
+
 import util.utilities as ut
 import cvxpy as cvx
-import numpy as np
-import networkx as nx
+
 import mdpcg as mdpcg
 class cvxGame(mdpcg.game):
     #--------------- CVX Parameters  ---------------------
