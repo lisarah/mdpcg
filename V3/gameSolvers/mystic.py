@@ -5,11 +5,13 @@ Created on Sat Aug  3 16:09:00 2019
 @author: craba
 """
 import gameSolvers.mdpcg as mdpcg
+import gameSolvers.cvx as cvx
+import algorithm.FW as FW
 import numpy as np
 from mystic.solvers import fmin_powell
 from mystic.monitors import VerboseMonitor
 
-class bilevel(mdpcg.game):
+class mysticGame(mdpcg.game):
     states = None;
     actions = None;
     Time = None;
@@ -19,9 +21,8 @@ class bilevel(mdpcg.game):
     def setDimensions(self):
         self.states, self.actions,self.Time = self.R.shape;
     def p02yijt(self,p0):
-        states,actions, Time = self.R.shape;
-        yijt = np.zeros((states, actions, Time));
-        for i in range(states):
+        yijt = np.zeros((self.states, self.actions,self.Time));
+        for i in range(self.states):
             yijt[i, 0, 0] = p0[i];
         
         return yijt;
@@ -47,7 +48,6 @@ class bilevel(mdpcg.game):
             else:
                 for j in range(self.actions):
                     yTens[i,j,0] = self.p0[i]/initSum*yTens[i,j,0];
-            
 
         # mass conservation
         for i in range(self.states):
@@ -73,3 +73,60 @@ class bilevel(mdpcg.game):
         
         
         return solution;
+    
+class bilevel(cvx.cvxGame):
+    states = None;
+    actions = None;
+    Time = None;
+    p0 = None;
+    y0 = None;
+    def setP0(self, p0):
+        self.p0 = 1.0*p0;
+        
+    def setDimensions(self):
+        self.states, self.actions,self.Time = self.R.shape;
+        
+    def p02Prime(self,p0):
+        primeY = np.zeros((self.states, self.actions, self.Time));
+        for i in range(self.states):
+            primeY[i, 0, 0] = p0[i]; 
+        self.y0 = primeY;
+        return self.vecPrime(primeY, np.zeros((self.states, self.actions, self.Time)));
+    
+    def tensPrime(self, vector):
+        prime = np.reshape(vector, (2, self.states, self.actions, self.Time));
+        y = prime[0,:,:,:];
+        eps = prime[1,:,:,:];   
+        return y, eps;
+    
+    def vecPrime(self, tens1, tens2):
+        return np.reshape(np.array([tens1, tens2]), (2*self.states*self.actions*self.Time));
+    
+    def obj(self,primeV):
+        y, eps = self.tensPrime(primeV);
+        objVal = 0.5*np.multiply(np.multiply(self.R, y),y) + np.multiply(self.C, y);
+#        socialF = self.socialCost(y);
+        return np.linalg.norm(eps)*1e7 + np.sum(objVal);
+    
+    def constraints(self, primeV):
+        y, eps = self.tensPrime(primeV);
+        self.C = self.C + eps;
+#        newY, mdpRes = self.solve(self.p0);
+        newY = self.frankWolfe(self.p0);
+        return self.vecPrime(newY, eps);
+    
+    def gradF(self, y):
+        return np.multiply(self.R, y) + self.C;
+    
+    def frankWolfe(self, p0):
+        yijt, hist = FW.FW(self.y0, p0, self.P, self.gradF);
+        yTens = np.reshape(yijt, (self.states, self.actions, self.Time));    
+        return yTens;
+    
+    def solve(self, p0):
+        self.setP0(p0);
+        self.setDimensions();
+        prime = self.p02Prime(p0);
+        stepMon = VerboseMonitor(1);
+        solution = fmin_powell(self.obj, prime, constraints = self.constraints, itermon = stepMon);
+        return self.tensPrime(solution);

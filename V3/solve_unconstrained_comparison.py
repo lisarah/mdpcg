@@ -13,7 +13,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 Time = 20;
 
-sGame = mys.bilevel(Time);
+sGame = mys.mysticGame(Time);
 seattleGraph=sGame.G;
 p0 = np.zeros((seattleGraph.number_of_nodes()));
 # make all drivers start from residential areas 6 of them

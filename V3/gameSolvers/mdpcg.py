@@ -45,7 +45,7 @@ class game:
 
         
     def socialCost(self, trajectory):
-        objF = sum([sum([sum([-self.R[i,j,t]*trajectory[i,j,t]*trajectory[i,j,t]
+        objF = sum([sum([sum([self.R[i,j,t]*trajectory[i,j,t]*trajectory[i,j,t]
                          for i in range(self.States) ]) 
                     for j in range(self.Actions)]) 
                for t in range(self.Time)]) \
