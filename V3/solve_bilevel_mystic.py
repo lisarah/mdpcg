@@ -24,4 +24,12 @@ p0[8] = 1./residentialNum;
 p0[10] = 1./residentialNum;
 p0[11] = 1./residentialNum;
 
-solution = sGame.solve(p0);
+yOpt, epsOpt = sGame.solve(p0);
+
+np.save("optimalY", yOpt, allow_pickle=False);
+np.save("optimalEps", epsOpt, allow_pickle = False);
+
+# ---------- to load file again---------------#
+#yOpt = np.load("optimalY.npy");
+#optimalEps = np.load("optimalEps.npy");
+
