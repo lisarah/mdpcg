@@ -51,7 +51,7 @@ def FW(x0, p0, P, gradF,
     else:
         xHistory = None;
 
-    while it <= maxIterations and err >= maxError:
+    while it <= maxIterations and abs(err) >= maxError:
         step = 2./(1.+it);
 #        print "error: ", err;
         lastX =  1.0*xk;
@@ -74,6 +74,8 @@ def FW(x0, p0, P, gradF,
     if returnLastGrad:
         return xk, xHistory, err;
     else:
+#        print ("FW approx: number of iterations ", it);
+#        print ("FW approx: current error ", err);
         return xk, xHistory;
 
 def subproblem(gradient, p0, P, isMax = False):

@@ -45,7 +45,7 @@ class bilevel(mdpcg.game):
     def obj(self,primeV):
         y, eps = self.tensPrime(primeV);
         objVal = 0.5*np.multiply(np.multiply(self.R, y),y) + np.multiply(self.C, y);
-        return np.linalg.norm(eps)*1e6 + np.sum(objVal);
+        return np.linalg.norm(eps)*1e3 + np.sum(objVal);
     
     def constraints(self, primeV):
         y, eps = self.tensPrime(primeV);
