@@ -45,18 +45,17 @@ class bilevel(mdpcg.game):
     def obj(self,primeV):
         y, eps = self.tensPrime(primeV);
         objVal = 0.5*np.multiply(np.multiply(self.R, y),y) + np.multiply(self.C, y);
-        return np.linalg.norm(eps)*1e7 + np.sum(objVal);
+        return np.linalg.norm(eps)*1e6 + np.sum(objVal);
     
     def constraints(self, primeV):
         y, eps = self.tensPrime(primeV);
         self.C = self.C + eps;
-        gc.collect();
+        
         newY = self.frankWolfe(self.p0);
         self.fileIter += 1;
         if self.fileIter % self.maxfileOutput == 0:
-            self.file = open("debug.txt", "a+"); 
+            gc.collect();           
             self.file.write("Evaluating constraint %d\r\n" % (self.fileIter));
-            self.file.close() 
         self.C = self.C - eps;    
         return self.vecPrime(newY, eps);
     
@@ -74,6 +73,7 @@ class bilevel(mdpcg.game):
         prime = self.p02Prime(p0);
         stepMon = VerboseMonitor(1);
         solution = fmin_powell(self.obj, prime, constraints = self.constraints, itermon = stepMon,maxiter= 200);
+        self.file.close();
         return self.tensPrime(solution);
     
 class mysticGame(mdpcg.game):
