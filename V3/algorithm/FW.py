@@ -32,16 +32,25 @@ def localSubproblem(gradient, p0, P):
     xNext[int(policy)] = p0;
     return V, xNext;     
  
-def FW(x0, p0, P, gradF, isMax=False, maxError = 1e-1, returnLastGrad = False, maxIterations = 5000):
+def FW(x0, p0, P, gradF, 
+       isMax=False, 
+       maxError = 1e-1, 
+       returnLastGrad = False, 
+       maxIterations = 5000, 
+       returnHist = True):
     it = 1;
     err= 1000.;
     states, actions, time = x0.shape;
     gradient = gradF(x0);
     xk  = x0;
-    totalxK = np.zeros((states,actions,time));
-    xHistory = [];
-    xHistory.append(x0);
-    dk = None;
+    if returnHist:
+        xHistory = [];
+        xHistory.append(x0);
+        print ("initializing heap mem in Frank Wolfe");
+#        totalxK = np.zeros((states,actions,time));
+    else:
+        xHistory = None;
+
     while it <= maxIterations and err >= maxError:
         step = 2./(1.+it);
 #        print "error: ", err;
@@ -50,18 +59,18 @@ def FW(x0, p0, P, gradF, isMax=False, maxError = 1e-1, returnLastGrad = False, m
         V, xNext  = subproblem(gradient, p0, P,isMax);
         xk = (1. - step)* xk + step*xNext;
         gradient = gradF(xk);
-        totalxK += 1.0*xk;
-#        xHistory.append(totalxK/it);
-        xHistory.append(1.0*xk);
+        
+        if returnHist:
+#            totalxK += 1.0*xk;
+#            xHistory.append(totalxK/it);
+            xHistory.append(1.0*xk);
 #        err = np.linalg.norm(lastGrad - gradient);
         err = -np.sum(np.multiply(lastGrad,(lastX - xNext)));
 #        print "error is ", err;
-        dk = xNext;
+        
         it += 1;
     if it >= maxIterations:
         print ("ran out of iteraitons FW, error is", err);
-#    else:
-#        print (" took iterations ", it);
     if returnLastGrad:
         return xk, xHistory, err;
     else:

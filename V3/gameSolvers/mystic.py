@@ -5,12 +5,77 @@ Created on Sat Aug  3 16:09:00 2019
 @author: craba
 """
 import gameSolvers.mdpcg as mdpcg
-import gameSolvers.cvx as cvx
 import algorithm.FW as FW
 import numpy as np
 from mystic.solvers import fmin_powell
 from mystic.monitors import VerboseMonitor
+import gc
 
+class bilevel(mdpcg.game):
+    states = None;
+    actions = None;
+    Time = None;
+    p0 = None;
+    y0 = None;
+    file = open("debug.txt", "a+"); 
+    fileIter = 0; 
+    maxfileOutput = 1000;
+    def setP0(self, p0):
+        self.p0 = 1.0*p0;
+        
+    def setDimensions(self):
+        self.states, self.actions,self.Time = self.R.shape;
+        
+    def p02Prime(self,p0):
+        primeY = np.zeros((self.states, self.actions, self.Time));
+        for i in range(self.states):
+            primeY[i, 0, 0] = p0[i]; 
+        self.y0 = primeY;
+        return self.vecPrime(primeY, np.zeros((self.states, self.actions, self.Time)));
+    
+    def tensPrime(self, vector):
+        prime = np.reshape(vector, (2, self.states, self.actions, self.Time));
+        y = prime[0,:,:,:];
+        eps = prime[1,:,:,:];   
+        return y, eps;
+    
+    def vecPrime(self, tens1, tens2):
+        return np.reshape(np.array([tens1, tens2]), (2*self.states*self.actions*self.Time));
+    
+    def obj(self,primeV):
+        y, eps = self.tensPrime(primeV);
+        objVal = 0.5*np.multiply(np.multiply(self.R, y),y) + np.multiply(self.C, y);
+        return np.linalg.norm(eps)*1e7 + np.sum(objVal);
+    
+    def constraints(self, primeV):
+        y, eps = self.tensPrime(primeV);
+        self.C = self.C + eps;
+        gc.collect();
+        newY = self.frankWolfe(self.p0);
+        self.fileIter += 1;
+        if self.fileIter % self.maxfileOutput == 0:
+            self.file = open("debug.txt", "a+"); 
+            self.file.write("Evaluating constraint %d\r\n" % (self.fileIter));
+            self.file.close() 
+        self.C = self.C - eps;    
+        return self.vecPrime(newY, eps);
+    
+    def gradF(self, y):
+        return np.multiply(self.R, y) + self.C;
+    
+    def frankWolfe(self, p0):
+        yijt, hist = FW.FW(self.y0, p0, self.P, self.gradF,returnHist = False);
+        yTens = np.reshape(yijt, (self.states, self.actions, self.Time));    
+        return yTens;
+    
+    def solve(self, p0):
+        self.setP0(p0);
+        self.setDimensions();
+        prime = self.p02Prime(p0);
+        stepMon = VerboseMonitor(1);
+        solution = fmin_powell(self.obj, prime, constraints = self.constraints, itermon = stepMon,maxiter= 200);
+        return self.tensPrime(solution);
+    
 class mysticGame(mdpcg.game):
     states = None;
     actions = None;
@@ -63,75 +128,11 @@ class mysticGame(mdpcg.game):
                             yTens[i,j,t] = prevSum/self.actions;
         return np.reshape(yTens, [self.states*self.actions*self.Time]);  
 
-    def solve(self, p0, f): 
+    def solve(self, p0): 
         self.setP0(p0);
         self.setDimensions();
-        self.file = f;
         y0 = self.p02yijt(p0) ;        
         stepMon = VerboseMonitor(1);
         solution = fmin_powell(self.obj, np.reshape(y0,[self.states*self.actions*self.Time]), constraints = self.constraints, itermon = stepMon)
-        
-        
         return solution;
     
-class bilevel(cvx.cvxGame):
-    states = None;
-    actions = None;
-    Time = None;
-    p0 = None;
-    y0 = None;
-    file = None; fileIter = 0; maxfileOutput = 100;
-    def setP0(self, p0):
-        self.p0 = 1.0*p0;
-        
-    def setDimensions(self):
-        self.states, self.actions,self.Time = self.R.shape;
-        
-    def p02Prime(self,p0):
-        primeY = np.zeros((self.states, self.actions, self.Time));
-        for i in range(self.states):
-            primeY[i, 0, 0] = p0[i]; 
-        self.y0 = primeY;
-        return self.vecPrime(primeY, np.zeros((self.states, self.actions, self.Time)));
-    
-    def tensPrime(self, vector):
-        prime = np.reshape(vector, (2, self.states, self.actions, self.Time));
-        y = prime[0,:,:,:];
-        eps = prime[1,:,:,:];   
-        return y, eps;
-    
-    def vecPrime(self, tens1, tens2):
-        return np.reshape(np.array([tens1, tens2]), (2*self.states*self.actions*self.Time));
-    
-    def obj(self,primeV):
-        y, eps = self.tensPrime(primeV);
-        objVal = 0.5*np.multiply(np.multiply(self.R, y),y) + np.multiply(self.C, y);
-#        socialF = self.socialCost(y);
-        return np.linalg.norm(eps)*1e7 + np.sum(objVal);
-    
-    def constraints(self, primeV):
-        y, eps = self.tensPrime(primeV);
-        self.C = self.C + eps;
-#        newY, mdpRes = self.solve(self.p0);
-        newY = self.frankWolfe(self.p0);
-        self.fileIter = self.fileIter + 1;
-        if self.fileIter % self.maxfileOutput == 0:
-            self.file.write("Appended constraint %d\r\n" % (self.fileIter))
-        return self.vecPrime(newY, eps);
-    
-    def gradF(self, y):
-        return np.multiply(self.R, y) + self.C;
-    
-    def frankWolfe(self, p0):
-        yijt, hist = FW.FW(self.y0, p0, self.P, self.gradF);
-        yTens = np.reshape(yijt, (self.states, self.actions, self.Time));    
-        return yTens;
-    
-    def solve(self, p0, f):
-        self.setP0(p0);
-        self.setDimensions();
-        self.file = f;
-        prime = self.p02Prime(p0);
-        stepMon = VerboseMonitor(1);
-        solution = fmin_powell(self.obj, prime, constraints = self.constraints, itermon = stepMon,maxiter= 200);
-        return self.tensPrime(solution);
