@@ -12,7 +12,7 @@ import numpy as np
 import gc
 gc.collect();
 Time = 20;
-
+f=open("debug.txt", "a+")
 sGame = mys.bilevel(Time);
 seattleGraph = sGame.G;
 p0 = np.zeros((seattleGraph.number_of_nodes()))
@@ -24,8 +24,8 @@ p0[8] = 1./residentialNum;
 p0[10] = 1./residentialNum;
 p0[11] = 1./residentialNum;
 
-yOpt, epsOpt = sGame.solve(p0);
-
+yOpt, epsOpt = sGame.solve(p0, f);
+f.close();
 np.save("optimalY", yOpt, allow_pickle=False);
 np.save("optimalEps", epsOpt, allow_pickle = False);
 

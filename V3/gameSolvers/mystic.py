@@ -63,10 +63,10 @@ class mysticGame(mdpcg.game):
                             yTens[i,j,t] = prevSum/self.actions;
         return np.reshape(yTens, [self.states*self.actions*self.Time]);  
 
-    def solve(self, p0): 
+    def solve(self, p0, f): 
         self.setP0(p0);
         self.setDimensions();
-
+        self.file = f;
         y0 = self.p02yijt(p0) ;        
         stepMon = VerboseMonitor(1);
         solution = fmin_powell(self.obj, np.reshape(y0,[self.states*self.actions*self.Time]), constraints = self.constraints, itermon = stepMon)
@@ -80,6 +80,7 @@ class bilevel(cvx.cvxGame):
     Time = None;
     p0 = None;
     y0 = None;
+    file = None; fileIter = 0; maxfileOutput = 100;
     def setP0(self, p0):
         self.p0 = 1.0*p0;
         
@@ -113,6 +114,9 @@ class bilevel(cvx.cvxGame):
         self.C = self.C + eps;
 #        newY, mdpRes = self.solve(self.p0);
         newY = self.frankWolfe(self.p0);
+        self.fileIter = self.fileIter + 1;
+        if self.fileIter % self.maxfileOutput == 0:
+            self.file.write("Appended constraint %d\r\n" % (self.fileIter))
         return self.vecPrime(newY, eps);
     
     def gradF(self, y):
@@ -123,10 +127,11 @@ class bilevel(cvx.cvxGame):
         yTens = np.reshape(yijt, (self.states, self.actions, self.Time));    
         return yTens;
     
-    def solve(self, p0):
+    def solve(self, p0, f):
         self.setP0(p0);
         self.setDimensions();
+        self.file = f;
         prime = self.p02Prime(p0);
         stepMon = VerboseMonitor(1);
-        solution = fmin_powell(self.obj, prime, constraints = self.constraints, itermon = stepMon);
+        solution = fmin_powell(self.obj, prime, constraints = self.constraints, itermon = stepMon,maxiter= 200);
         return self.tensPrime(solution);
