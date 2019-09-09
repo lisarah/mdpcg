@@ -44,7 +44,7 @@ class bilevel(mdpcg.game):
     
     def obj(self,primeV):
         y, eps = self.tensPrime(primeV);
-        objVal = 0.5*np.multiply(np.multiply(self.R, y),y) + np.multiply(self.C, y);
+        objVal = np.multiply(np.multiply(self.R, y),y) + np.multiply(self.C, y);
         return np.linalg.norm(eps)*1e7 + np.sum(objVal);
     
     def constraints(self, primeV):
@@ -73,7 +73,7 @@ class bilevel(mdpcg.game):
         self.setDimensions();
         prime = self.p02Prime(p0);
         stepMon = VerboseMonitor(1);
-        solution = fmin_powell(self.obj, prime, constraints = self.constraints, itermon = stepMon,maxiter= 200);
+        solution = fmin_powell(self.obj, prime, constraints = self.constraints, itermon = stepMon,maxiter= 2);
         return self.tensPrime(solution);
     
 class mysticGame(mdpcg.game):
