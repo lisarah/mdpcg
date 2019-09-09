@@ -6,7 +6,6 @@ Created on Fri Jun 01 12:09:47 2018
 These are helpers for mdpRouting game class
 """
 import numpy as np
-import cvxpy as cvx
 import matplotlib.pyplot as plt
 import networkx as nx
 

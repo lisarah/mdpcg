@@ -6,8 +6,6 @@ Created on Fri Aug  2 17:58:25 2019
 """
 import util.mdp as mdp
 import util.figureGeneration as fG
-import util.utilities as ut
-import cvxpy as cvx
 import numpy as np
 import networkx as nx
 
