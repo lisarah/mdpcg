@@ -19,7 +19,7 @@ class bilevel(mdpcg.game):
     y0 = None;
     file = open("debug.txt", "a+"); 
     fileIter = 0; 
-    maxfileOutput = 1000;
+    maxfileOutput = 100;
     def setP0(self, p0):
         self.p0 = 1.0*p0;
         
@@ -50,12 +50,13 @@ class bilevel(mdpcg.game):
     def constraints(self, primeV):
         y, eps = self.tensPrime(primeV);
         self.C = self.C + eps;
-        
+#        print ("in constraints");
         newY = self.frankWolfe(self.p0);
         self.fileIter += 1;
         if self.fileIter % self.maxfileOutput == 0:
             gc.collect();           
             self.file.write("Evaluating constraint %d\r\n" % (self.fileIter));
+            print ("Evaluating constraint, ", self.fileIter);
         self.C = self.C - eps;    
         return self.vecPrime(newY, eps);
     

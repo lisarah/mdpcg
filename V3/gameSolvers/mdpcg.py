@@ -11,47 +11,17 @@ import networkx as nx
 
 class game:
 #--------------constructor-------------------------------
-    def __init__(self, Time, strictlyConvex = True):
+    def __init__(self, P, S, A, C, D, Time):
         #------------------------ MDP problem Parameters ----------------
-        self.R = None; # rewards matrix 
-        self.C = None; # constant part of the reward
-        self.P = None;
+        self.C = C; # cost matrix 
+        self.D = D; # constant part of the cost
+        self.P = P;
         self.Time = Time; # number of time steps
-        self.States = None; # number of states
-        self.Actions = None; # number of actions
-        #------------ Underlying Network parameters -------------------
-        self.G = None;
-        self.graphPos = None; # for drawing
+        self.States = S; # number of states
+        self.Actions = A; # number of actions
                
-        # ---------- choose type of underlying graph---------------------------
-        self.graphPos, self.G, distances =  fG.NeighbourGen(False);
-        self.States = self.G.number_of_nodes();
-        self.Actions = len(nx.degree_histogram(self.G));
-        self.P, c, d = mdp.generateQuadMDP(self.States,
-                                    self.Actions,
-                                    self.G,
-                                    distances)
-        self.R = np.zeros((self.States,self.Actions,Time));
-        self.C = np.zeros((self.States,self.Actions,Time));
-        for t in range(Time):
-            if strictlyConvex:
-                self.R[:,:,t] = 1.0*d + 1;
-                self.C[:,:,t] = 1.0*c - c.min()*1.1;
-            else:
-                self.R[:,:,t] = 1.0*d;
-                self.C[:,:,t] = 1.0*c;
+       
 
-        
-    def socialCost(self, trajectory):
-        objF = sum([sum([sum([self.R[i,j,t]*trajectory[i,j,t]*trajectory[i,j,t]
-                         for i in range(self.States) ]) 
-                    for j in range(self.Actions)]) 
-               for t in range(self.Time)]) \
-               + sum([sum([sum([(self.C[i,j,t])*trajectory[i,j,t]
-                           for i in range(self.States) ]) 
-                    for j in range(self.Actions)]) 
-                  for t in range(self.Time)])
-        return objF;
     
 
     

@@ -350,3 +350,128 @@ def generateQuadMDP(v,a,G,distances, p =0.9):
 #    c[6] = 0.;
 
     return P,c,d     
+
+
+def airportMDP():
+    """
+        Builds (S,A,P, C) of seattle airport
+        S: each gate i in seattle has two separate states 
+            - G_i: waitline for gate i
+            - T_i: take off state for gate i
+        Seattle airport's gates: total = 77
+            concourse A: 14 gates, s = 0
+            concourse B: 12 gates, s = 1
+            concourse C: 12 gates, s = 2
+            concourse D: 11 gates, s = 3
+            satellite N: 14 gates, s = 4
+            satellite S: 14 gates, s = 5
+        A: from different states we have different actions
+            - G_i: 
+                - A_i waits in G_i. goes to take off state with 0.6 probability
+                  and 0.4 chance of staying in G_i
+                - A_j goes to neighbouring states j with 0.9 probability 
+                  and 0.1/N chance of other states
+
+            - T_i: 
+                - A_i stays in current state with probability 1
+        P: Probability kernel, see actions 
+        C: cost of each state action
+            - (G_i, A_j): Gas money
+            - (G_i, A_i): population dependent l(y) = Cy + d
+            - (T_i, A_i): 1
+            ** each (G_i, A_i/j) cost must be much higher than T_i , A_i
+        returns: 
+            P: probability kernel, S x S x A
+            C: cost of game l(y) = Cy + D, S x A
+            D: cost of game l(y) = Cy + D, S x A
+    """
+    # States  -------------------------------------------
+    # order of states goes: G_1, G_2, ... T_1, T_2,...
+    # gate ordered from concourse A/B/C/D satellite N/S 
+    #          -------------------------------------------
+    S = 6 + 77;
+    
+    # Actions  -------------------------------------------
+    # actions: going within each concourse/satellite, 
+    #          going to neighbouring concourse/satellite
+    # action order: first action is to stay in concourse
+    #               subsequent actions are to move to neighbouring state
+    #          -------------------------------------------
+    A = np.zeros(S);
+    # concourse A
+    A[0] = 3;
+    # concourse B
+    A[1] = 4;
+    # concourse C
+    A[2] = 4;
+    # concourse D
+    A[3] = 3;
+    # satellite N
+    A[4] = 3;
+    # satellite S
+    A[5] = 3;
+    # the gate states T_i
+    A[6:] = 1;
+#    print (A)
+    actionSize = int( max(A));
+    # corresponding terminal states
+    Terminals = np.array([14,12,12, 11,14,14]);
+    # neighbouring states 
+    Neighbours = [[1,5],   # A is connected to (B, S)
+                  [0,2,5], # B is connected to (A, C, S)
+                  [1,3,4], # C is connected to (B, D, N),
+                  [2,4],   # D is connected to (C, N)
+                  [2,3],   # N is connected to (C, D)
+                  [0,1]];  # S is connected to (A, B)
+                  
+    # probability kernel -------------------------------------------
+    P = np.zeros((S,S,actionSize));
+    for s in range(S):
+        if s <= 5: # state is a concourse state
+            # action 0: state in concourse state
+            P[s,s,0] = 0.5;
+            termStart = int(6 + sum(Terminals[0:s]));
+            termEnd = termStart + Terminals[s];
+            P[termStart:termEnd, s, 0] = 0.5/Terminals[s];
+#            print ("state ", s );
+#            print (P[:,s,0])
+            # other actions: going to neighbouring concourses
+            neighbourAction = 1;
+            neighbours = len(Neighbours[s]) - 1;
+            for desti in Neighbours[s]:
+                P[desti, s, neighbourAction] = 0.9;
+                for otherNeighB in Neighbours[s]:
+                    if otherNeighB != desti:
+                        P[otherNeighB, s, neighbourAction] = 0.1/neighbours;
+                neighbourAction += 1;
+        else: # state is a gate state
+           P[s,s,0] = 1;
+   
+    # cost     -------------------------------------------
+    # l(y) = Cy + D, C: S x A, D : S x A
+    C = np.zeros((S,actionSize));
+    D = np.zeros((S,actionSize));
+    # cost of non-existent actions is infinity         
+    for s in range(S):
+        action = 0;
+        # cost of feasible action
+        while action < A[s]:
+            if action == 0:
+                if s <= 5: # cost of staying in concourse s
+                    C[s, action]= 10;
+                else: # cost of staying in gate s
+                    C[s, action] = 0;
+                D[s, action] = 1;
+            else:
+                # going to neighbouring states depends on how 
+                # many other planes are traversing the road
+                C[s, action] = 2; 
+                # gas money of going else where
+                D[s, action] = 5;
+            action += 1;
+        # cost of non-existent actions is infinity
+        while action < actionSize:        
+            C[s, action] = 0;
+            D[s, action] = np.inf;
+            action +=1;    
+    return P, C, D, S, actionSize
