@@ -81,3 +81,46 @@ def NeighbourGen(draw = True):
 #    labels[12]=r'Ravenna'
 #    nx.draw_networkx_labels(G,nodePos,labels,font_size=16)
     return nodePos, G, distances;
+
+def airPortVis():
+    """
+        Visualize a state-action distribution over seattle airport
+        see MDP.airportMDP for MDP definition
+        
+    """
+    N = 12; # number of states
+    # With edge weights
+    edges = [(1,2),  
+             (1,3),
+             (2,3),
+             (2,4),
+             (4,5),
+             (4,6),
+             (5,6)];
+    G = nx.Graph(edges)
+    nodePos = {1:  (400, 200),
+               2:  (200, 200),
+               3:  (300,   0),
+               4:  (100, 400),
+               5:  (300, 500),
+               6:  (200, 600)};
+    nx.draw(G, pos=nodePos, node_color='b', edge_color='k',
+                font_weight='bold', transparent=True) # With specified positions
+
+    return True;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

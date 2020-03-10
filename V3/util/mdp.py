@@ -354,10 +354,10 @@ def generateQuadMDP(v,a,G,distances, p =0.9):
 
 def airportMDP():
     """
-        Builds (S,A,P, C) of seattle airport
-        S: each gate i in seattle has two separate states 
-            - G_i: waitline for gate i
-            - T_i: take off state for gate i
+        Builds (S, A, P, C, D) of seattle airport
+        S: Two types of states
+            - S_i: waitline for concourse i
+            - G_i: gate i in a concourse/satellite
         Seattle airport's gates: total = 77
             concourse A: 14 gates, s = 0
             concourse B: 12 gates, s = 1
@@ -366,20 +366,20 @@ def airportMDP():
             satellite N: 14 gates, s = 4
             satellite S: 14 gates, s = 5
         A: from different states we have different actions
-            - G_i: 
-                - A_i waits in G_i. goes to take off state with 0.6 probability
-                  and 0.4 chance of staying in G_i
+            - S_i: 
+                - A_i waits in S_i. goes to take off state with 0.5 probability
+                  and 0.5 chance of staying in S_i
                 - A_j goes to neighbouring states j with 0.9 probability 
                   and 0.1/N chance of other states
 
-            - T_i: 
+            - G_i: 
                 - A_i stays in current state with probability 1
         P: Probability kernel, see actions 
         C: cost of each state action
-            - (G_i, A_j): Gas money
-            - (G_i, A_i): population dependent l(y) = Cy + d
-            - (T_i, A_i): 1
-            ** each (G_i, A_i/j) cost must be much higher than T_i , A_i
+            - (S_i, A_j): Gas money
+            - (S_i, A_i): population dependent l(y) = Cy + d
+            - (G_i, A_i): 1
+            ** each (S_i, A_i/j) cost must be much higher than _i , A_i
         returns: 
             P: probability kernel, S x S x A
             C: cost of game l(y) = Cy + D, S x A
@@ -458,20 +458,21 @@ def airportMDP():
         while action < A[s]:
             if action == 0:
                 if s <= 5: # cost of staying in concourse s
-                    C[s, action]= 10;
+                    C[s, action]= 50;
                 else: # cost of staying in gate s
                     C[s, action] = 0;
                 D[s, action] = 1;
             else:
                 # going to neighbouring states depends on how 
                 # many other planes are traversing the road
-                C[s, action] = 2; 
+                C[s, action] = 1; 
                 # gas money of going else where
-                D[s, action] = 5;
+                D[s, action] = 3;
             action += 1;
         # cost of non-existent actions is infinity
+        someInf = 10000; # apparently np.inf doesn't work
         while action < actionSize:        
             C[s, action] = 0;
-            D[s, action] = np.inf;
+            D[s, action] = someInf;
             action +=1;    
     return P, C, D, S, actionSize

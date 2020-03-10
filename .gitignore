@@ -4,3 +4,4 @@ testFile.py
 __pycache__
 *html
 *npy
+*.pyc
