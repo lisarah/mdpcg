@@ -4,8 +4,8 @@ This repository contains python code for the MDP congestion games, a game model 
 ## Content
 1. MDP dynamic models: 
 	* A mock up MDP with 3 x 5 grid states. Each state has 4 actions: left/right/up/down, where each action takes the user to the target neighbouring state with probability 0 < p < 1 and to another neighbouring state with probability 1-p. 
-	* Uber drivers' MDP dynamics in Seattle, WA. See [Tolling for Constraint Satisfaction in MDP Congestion Games](https://arxiv.org/pdf/1903.00747.pdf)  for more model.
-	* Uber drivers' MDP dynamics in New York city generated from 17.8 million Uber pick-ups from [Data.World](https://data.world/data-society/uber-pickups-in-nyc)  (under development).
+	* Uber drivers' MDP dynamics in Seattle, WA. See [Tolling for Constraint Satisfaction in MDP Congestion Games](https://arxiv.org/pdf/1903.00747.pdf)  for more model details.
+	* Uber drivers' MDP dynamics in New York city generated from 17.8 million Uber pick-up data from [Data.World](https://data.world/data-society/uber-pickups-in-nyc)  (under development).
 2. Game solvers
 	* CVXPY 
 	* Custom solver - Frank Wolfe + dynamic programming - with automatic step size generation. See [Tolling for Constraint Satisfaction in MDP Congestion Games](https://arxiv.org/pdf/1903.00747.pdf) for convergence guarantees.
