@@ -5,126 +5,119 @@ Created on Fri Aug  2 17:58:25 2019
 @author: craba
 """
 import util.mdp as mdp
-import util.figureGeneration as fG
+import util.figureGeneration as fg
+import networkx as nx
 import numpy as np
 import cvxpy as cvx
-class game:
+class quad_game:
 #--------------constructor-------------------------------
-    def __init__(self, P, S, A, C, D, Time):
+    def __init__(self, Time, strictlyConvex = True):
+        graphPos, G, distances =  fg.NeighbourGen(False);
+        self.States = G.number_of_nodes();
+        self.Actions = len(nx.degree_histogram(G));
+        P, c, d = mdp.generateQuadMDP(self.States,
+                                      self.Actions,
+                                      G,
+                                      distances)
+        #------------------------ Game graph -----------------------
+        self.G = G
+        self.graphPos = graphPos
         #------------------------ MDP problem Parameters ----------------
-        self.C = C; # cost matrix 
-        self.D = D; # constant part of the cost
+        self.R = np.zeros((self.States, self.Actions,Time)); # quadratic part of cost 
+        self.C = np.zeros((self.States,self.Actions,Time)); # constant part of the cost
+        for t in range(Time):
+            if strictlyConvex:
+                self.R[:,:,t] = 1.0*d + 1;
+                self.C[:,:,t] = 1.0*c - c.min()*1.1;
+            else:
+                self.R[:,:,t] = 1.0*d;
+                self.C[:,:,t] = 1.0*c;
         self.P = P;
         self.Time = Time; # number of time steps
-        self.States = S; # number of states
-        self.Actions = A; # number of actions
-               
         self.verbose = False; # debug parameter to output states
         
-        #------------------- cvx parameters ---------------------------
-        self.yijt = None;
-        
-    def solve(self, p0):
-        # construct game objective
-        print ("------------- setting game objective -----------------")
-        obj = self.setObjective();
-        y_ijt = self.yijt;
-        print ("------------- setting y positivity -------------------")
-        positivity = self.setPositivity();
-        print ("---------- setting y mass conservation ---------------")
-        massConservation = self.setMassConservation();
-        print ("----- setting y initial condition conservation -------")
-        initialCondition = self.setInitialCondition(p0);
-        
-        mdpPolicy = cvx.Problem(cvx.Minimize(obj), 
-                                positivity+massConservation+initialCondition);
-        print ("----- solving game as cvx problem -------")
-        mdpRes = mdpPolicy.solve(solver=cvx.ECOS, verbose=True);
-        print ("optimal value = ", mdpRes)
-        optRes = mdp.cvxDict2Arr(y_ijt,[self.States,self.Actions,self.Time]);
-       
-        return optRes, mdpRes;
-    
-    def setObjective(self):
-            y_ijt = {};
-            for i in range(self.States):
-                for j in range(self.Actions):
-                    for t in range(self.Time):
-                        y_ijt[(i,j,t)] = cvx.Variable();
-            if self.verbose:
-                print ("quadratic objective")
             
-            objF = sum([sum([sum([0.5*cvx.pos(self.C[i,j])*cvx.square(y_ijt[(i,j,t)])
-                         for i in range(self.States) ]) 
-                    for j in range(self.Actions)]) 
-               for t in range(self.Time)]) \
-                   + sum([sum([sum([self.D[i,j]*y_ijt[(i,j,t)]
-                         for i in range(self.States) ]) 
-                    for j in range(self.Actions)]) 
-               for t in range(self.Time)]);
-            self.yijt = y_ijt;
-            return objF;
+    def get_objective(self, is_social = False):
+        y_ijt = self.y_ijt
+        if self.verbose:
+            print ("game set with quadratic objective")
+        quad_term =  sum([sum([sum([
+            cvx.pos(self.R[i, j, t]) * cvx.square(y_ijt[(i, j, t)])
+                for i in range(self.States) ]) 
+                for j in range(self.Actions)]) 
+                for t in range(self.Time)]) 
+        linear_term = sum([sum([sum([self.C[i, j, t]*y_ijt[(i, j, t)]
+                for i in range(self.States) ]) 
+                for j in range(self.Actions)]) 
+                for t in range(self.Time)]);
+        
+        objective_value = 1 * linear_term
+        if is_social:
+            objective_value = objective_value + quad_term
+        else:
+            objective_value = objective_value + 0.5 * quad_term
+        return objective_value;
 # ----------------------LP setPositivity Constraints --------------------------
-    def setPositivity(self):
-        positivity =[];
-        actions = self.Actions;
-        states = self.States;
-        time = self.Time;
-        y_ijt = self.yijt;
-        for i in range(states):                
-            for t in range(time):                     
-                for j in range(actions):
-                    # positivity constraints
-                    positivity.append(y_ijt[(i,j,t)] >= 0.)
-        return positivity;
+#     def setPositivity(self):
+#         positivity =[];
+#         actions = self.Actions;
+#         states = self.States;
+#         time = self.Time;
+#         y_ijt = self.yijt;
+#         for i in range(states):                
+#             for t in range(time):                     
+#                 for j in range(actions):
+#                     # positivity constraints
+#                     positivity.append(y_ijt[(i,j,t)] >= 0.)
+#         return positivity;
                     
-# ----------------------LP set initial condition Constraints ------------------
-    def setInitialCondition(self,p0):
-        initialCondition = [];
-        actions = self.Actions;
-        states = self.States;
-        y_ijt = self.yijt;  
-        for i in range(states):
-            # Enforce initial condition
-            initState = sum([y_ijt[(i,j,0)] for j in range(actions)]);
-            if p0 is None:
-                print ("no initial condition");
-                if i == 0:
-                    initialCondition.append(initState == 1.)
-                else:
-                    initialCondition.append(initState == 0.)
-            else: 
-                initialCondition.append(initState == p0[i]);   
-        return initialCondition;
-# ----------------------LP set mass conservation Constraints ------------------
-    def setMassConservation(self):
-        massConservation = [];
-        actions = self.Actions;
-        states = self.States;
-        time = self.Time;
-        y_ijt = self.yijt;
-        for i in range(states):
-            for t in range(time-1):  
-                # mass conservation constraints between timesteps
-                prevProb = sum([sum([y_ijt[(iLast,j,t)]*self.P[i,iLast,j] 
-                                for iLast in range(states) ]) 
-                           for j in range(actions)]) ;
-                newProb = sum([y_ijt[(i,j,t+1)] 
-                          for j in range(actions)]);
-                massConservation.append(newProb == prevProb);
-        return massConservation;
-# ----------------------LP set state Constraints ------------------------------
-    def setStateConstraints(self, constraintList):
-        y_ijt = self.yijt;
-        stateConstraints = [];
-        for ind in range(len(constraintList)):
-            con = constraintList[ind];
-            constrainedState = y_ijt[(con.index)];
-            if con.upperBound:
-                self.stateConstraints.append(constrainedState <= con.value)
-            else: 
-                self.stateConstraints.append(constrainedState >= con.value)            
-        return stateConstraints;
+# # ----------------------LP set initial condition Constraints ------------------
+#     def setInitialCondition(self,p0):
+#         initialCondition = [];
+#         actions = self.Actions;
+#         states = self.States;
+#         y_ijt = self.yijt;  
+#         for i in range(states):
+#             # Enforce initial condition
+#             initState = sum([y_ijt[(i,j,0)] for j in range(actions)]);
+#             if p0 is None:
+#                 print ("no initial condition");
+#                 if i == 0:
+#                     initialCondition.append(initState == 1.)
+#                 else:
+#                     initialCondition.append(initState == 0.)
+#             else: 
+#                 initialCondition.append(initState == p0[i]);   
+#         return initialCondition;
+# # ----------------------LP set mass conservation Constraints ------------------
+#     def setMassConservation(self):
+#         massConservation = [];
+#         actions = self.Actions;
+#         states = self.States;
+#         time = self.Time;
+#         y_ijt = self.yijt;
+#         for i in range(states):
+#             for t in range(time-1):  
+#                 # mass conservation constraints between timesteps
+#                 prevProb = sum([sum([y_ijt[(iLast,j,t)]*self.P[i,iLast,j] 
+#                                 for iLast in range(states) ]) 
+#                            for j in range(actions)]) ;
+#                 newProb = sum([y_ijt[(i,j,t+1)] 
+#                           for j in range(actions)]);
+#                 massConservation.append(newProb == prevProb);
+#         return massConservation;
+# # ----------------------LP set state Constraints ------------------------------
+#     def setStateConstraints(self, constraintList):
+#         y_ijt = self.yijt;
+#         stateConstraints = [];
+#         for ind in range(len(constraintList)):
+#             con = constraintList[ind];
+#             constrainedState = y_ijt[(con.index)];
+#             if con.upperBound:
+#                 self.stateConstraints.append(constrainedState <= con.value)
+#             else: 
+#                 self.stateConstraints.append(constrainedState >= con.value)            
+#         return stateConstraints;
 #class mdpcg:
 ##--------------constructor-------------------------------
 #    def __init__(self, Time, strictlyConvex = True):
