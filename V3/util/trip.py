@@ -20,24 +20,46 @@ def location_compare(trip_long, trip_lat, area_long, area_lat, bound_long,
 # Define trip class
 class Trip:
     def __init__(self, trip_instance):
-        # Date retrieval
-        date_ = trip_instance[0].split(" ")[0]
-        date = date_.replace(date_[-4:], date_[-2:])
-        self.date = datetime.datetime.strptime(date, '%m/%d/%y')
+        # Pickup Date retrieval
+        pudate_ = trip_instance[1].split(" ")[0]
+        self.pudate = datetime.datetime.strptime(pudate_, '%Y-%m-%d')
         
-        # Time retrieval
-        time_ = trip_instance[0].split(" ")[1]
-        time = time_.split(":")
-        hours_ = int(time[0])
-        minutes_ = int(time[1])
-        seconds_ = int(time[2])
-        elapsed = datetime.timedelta(hours = hours_, minutes = minutes_, 
-                                     seconds = seconds_)
-        self.time = elapsed.seconds/3600 # Time in hours since beginning of day
+        # Dropoff Date retrieval
+        dodate_ = trip_instance[2].split(" ")[0]
+        self.dodate = datetime.datetime.strptime(dodate_, '%Y-%m-%d')
+        
+        # Pickup Time retrieval
+        putime_ = trip_instance[1].split(" ")[1]
+        putime = putime_.split(":")
+        pu_hours_ = int(putime[0])
+        pu_minutes_ = int(putime[1])
+        pu_seconds_ = int(putime[2])
+        elapsed_pu = datetime.timedelta(hours = pu_hours_, minutes = pu_minutes_, 
+                                     seconds = pu_seconds_)
+        self.putime = elapsed_pu.seconds/3600 # Time in hours since beginning of day
+                
+        # Dropoff Time retrieval
+        dotime_ = trip_instance[2].split(" ")[1]
+        dotime = dotime_.split(":")
+        do_hours_ = int(dotime[0])
+        do_minutes_ = int(dotime[1])
+        do_seconds_ = int(dotime[2])
+        elapsed_do = datetime.timedelta(hours = do_hours_, minutes = do_minutes_, 
+                                     seconds = do_seconds_)
+        self.dotime = elapsed_do.seconds/3600 # Time in hours since beginning of day
+        
+        # Elapsed Trip Time
+        self.trip_time = self.dotime - self.putime
         
         # Pickup Location retrieval
-        self.long = trip_instance[2]
-        self.lat = trip_instance[1]
+        self.zone_pu = trip_instance[7]
         
-        # Base
-        self.base = trip_instance[3]
+        
+        # Dropoff Location retrieval
+        self.zone_do = trip_instance[8]
+        
+        
+        # Cost of ride
+        self.fare = trip_instance[-1]
+        
+        
