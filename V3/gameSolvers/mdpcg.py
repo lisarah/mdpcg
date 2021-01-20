@@ -34,10 +34,10 @@ class quad_game:
                 self.C[:,:,t] = 1.0*c;
         self.P = P;
         self.Time = Time; # number of time steps
-        self.verbose = False; # debug parameter to output states
-        
+        self.verbose = False; # debug parameter to output states       
             
     def get_objective(self, is_social = False):
+        """ Define the objective using cvxpy variables."""
         y_ijt = self.y_ijt
         if self.verbose:
             print ("game set with quadratic objective")
@@ -57,6 +57,23 @@ class quad_game:
         else:
             objective_value = objective_value + 0.5 * quad_term
         return objective_value;
+    
+    def evaluate_objective(self, y):
+        """Evaluate the objective for a given population distribution."""
+        quad_term =  sum([sum([sum([self.R[i, j, t] * y[i, j, t]**2
+            for i in range(self.States) ]) 
+            for j in range(self.Actions)]) 
+            for t in range(self.Time)]) 
+        linear_term = sum([sum([sum([self.C[i, j, t] * y[i, j, t]
+            for i in range(self.States) ]) 
+            for j in range(self.Actions)]) 
+            for t in range(self.Time)])
+
+        return linear_term + 0.5 * quad_term
+
+    def evaluate_cost(self, y):
+        """Evaluate cost at current population distribution."""
+        return np.multiply(self.R, y) + self.C
 # ----------------------LP setPositivity Constraints --------------------------
 #     def setPositivity(self):
 #         positivity =[];

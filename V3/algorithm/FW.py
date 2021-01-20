@@ -2,9 +2,10 @@
 """
 Created on Wed Aug  7 11:08:09 2019
 
-@author: craba
+@author: Sarah Li
 """
 import numpy as np
+import dynamic_programming as dp
 
 def localFW(x0, p0, P, gradF, maxIterations = 5 ):
     it = 1;
@@ -46,7 +47,6 @@ def FW(x0, p0, P, gradF,
     if returnHist:
         xHistory = [];
         xHistory.append(x0);
-        print ("initializing heap mem in Frank Wolfe");
 #        totalxK = np.zeros((states,actions,time));
     else:
         xHistory = None;
@@ -56,7 +56,7 @@ def FW(x0, p0, P, gradF,
 #        print "error: ", err;
         lastX =  1.0*xk;
         lastGrad = 1.0*gradient;
-        V, xNext  = subproblem(gradient, p0, P,isMax);
+        V, xNext  = dp.value_iteration(gradient, p0, P,isMax);
         xk = (1. - step)* xk + step*xNext;
         gradient = gradF(xk);
         
@@ -66,7 +66,7 @@ def FW(x0, p0, P, gradF,
             xHistory.append(1.0*xk);
 #        err = np.linalg.norm(lastGrad - gradient);
         err = -np.sum(np.multiply(lastGrad,(lastX - xNext)));
-#        print "error is ", err;
+        # print (f"error is {err}")
         
         it += 1;
     if it >= maxIterations:
@@ -78,51 +78,7 @@ def FW(x0, p0, P, gradF,
 #        print ("FW approx: current error ", err);
         return xk, xHistory;
 
-def subproblem(gradient, p0, P, isMax = False):
-    states, actions, time = gradient.shape;
-    V = np.zeros((states, time));
-    policy = np.zeros((states, time)); # pi_t(state) = action;
-    trajectory = np.zeros((states,time));
-    xNext = np.zeros((states,actions,time));
 
-    # construct optimal value function and policy
-    for tIter in range(time):
-        t = time-1-tIter;   
-        cCurrent =gradient[:,:,t]; 
-        if t == time-1:       
-            if isMax:
-                V[:,t] = np.max(cCurrent, axis = 1);
-                policy[:,t] = np.argmax(cCurrent, axis=1);
-            else:                 
-                V[:,t] = np.min(cCurrent, axis = 1);
-                policy[:,t] = np.argmin(cCurrent, axis=1);
-        else:
-            # solve Bellman operators
-            Vt = V[:,t+1];
-            obj = cCurrent + np.einsum('ijk,i',P,Vt);
-            if isMax:
-                V[:,t] = np.max(obj, axis=1);
-                policy[:,t] = np.argmax(obj, axis=1);
-            else:
-                V[:,t] = np.min(obj, axis=1);
-                policy[:,t] = np.argmin(obj, axis=1);
-
-    for t in range(time):
-        # construct next trajectory
-        if t == 0:
-            traj = 1.0*p0;
-        else:
-            traj = trajectory[:,t-1];
-        # construct y
-        pol = policy[:,t];
-        x = np.zeros((states,actions));
-
-        for s in range(states):
-            x[s,int(pol[s])] = traj[s];
-        xNext[:,:,t] = 1.0*x;
-        trajectory[:,t] =  np.einsum('ijk,jk',P,x);
-
-    return V, xNext; 
 def FW_inf(x0, p0, P, gradF, isMax=False, maxError = 1e-1, returnLastGrad = False, maxIterations = 100):
     it = 1;
     err= 1000.;
