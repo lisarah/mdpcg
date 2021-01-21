@@ -5,7 +5,7 @@ Created on Wed Aug  7 11:08:09 2019
 @author: Sarah Li
 """
 import numpy as np
-import dynamic_programming as dp
+import algorithm.dynamic_programming as dp
 
 def localFW(x0, p0, P, gradF, maxIterations = 5 ):
     it = 1;
@@ -73,10 +73,12 @@ def FW(x0, p0, P, gradF,
         print ("ran out of iteraitons FW, error is", err);
     if returnLastGrad:
         return xk, xHistory, err;
-    else:
+    elif returnHist:
 #        print ("FW approx: number of iterations ", it);
 #        print ("FW approx: current error ", err);
         return xk, xHistory;
+    else:
+        return xk
 
 
 def FW_inf(x0, p0, P, gradF, isMax=False, maxError = 1e-1, returnLastGrad = False, maxIterations = 100):
@@ -93,7 +95,7 @@ def FW_inf(x0, p0, P, gradF, isMax=False, maxError = 1e-1, returnLastGrad = Fals
         step = 2./(1.+it);
 #        print "error: ", err;
         lastGrad =  gradient;
-        V, xNext  = subproblem(gradient, p0, P,isMax);
+        V, xNext  = dp.value_iteration(gradient, p0, P,isMax);
         xk = (1. - step)* xk + step*xNext;
         gradient = gradF(xk);
         totalxK += 1.0*xk;

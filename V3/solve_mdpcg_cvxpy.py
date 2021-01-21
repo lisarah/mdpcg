@@ -37,7 +37,7 @@ optRes, mdpRes = sGame.solve(p0, verbose=False,returnDual=False);
 #
 cState = 6;                               
 sGame.setConstrainedState(cState, 10, isLB = True);
-print ("Solving constrained case, state 7 >= 0.5 case");
+print ("Solving constrained case, state 7 >= 10 case");
 optCRes = sGame.solveWithConstraint(p0,verbose = False);
 print ("optimal dual: ", sGame.optimalDual)
 print ("lower bound" , sGame.stateLB)
