@@ -9,7 +9,7 @@ frank wolfe.
 """
 import numpy as np
 import algorithm.FW as fw
-import gameSolvers.mdpcg as mdpcg
+import models.mdpcg as mdpcg
 import util.plot_lib as pt
 time_steps = 20
 epsilon = 1e-1

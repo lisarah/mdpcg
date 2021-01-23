@@ -8,7 +8,7 @@ import util.mdp as mdp
 import util.utilities as ut
 import cvxpy as cvx
 
-import gameSolvers.mdpcg as mdpcg
+import models.mdpcg as mdpcg
 class cvx_solver(mdpcg.quad_game):
     # #--------------- CVX Parameters  ---------------------
     y_ijt = {}

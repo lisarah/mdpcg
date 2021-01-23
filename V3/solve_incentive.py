@@ -9,7 +9,7 @@ Perform inexact dual ascent
 import numpy as np
 import algorithm.FW as fw
 import algorithm.inexact_projected_gradient_ascent as pga
-import gameSolvers.mdpcg as mdpcg
+import models.mdpcg as mdpcg
 import util.plot_lib as pt
 import util.utilities as ut
 
