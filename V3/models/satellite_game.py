@@ -32,10 +32,10 @@ class satellite_game:
             self.states[state_ind] = r_init
             for r_final in r_final_set:
                 if state_ind == 0:
-                    self.actions{action_ind} = r_final 
-                action_ind += 1
+                    self.actions[action_ind] = r_final 
+                    action_ind += 1
                 self.cost[-1].append(om.hohnman_transfer(r_init, r_final))
-            self.state_ind += 1
+            state_ind += 1
 
                 
 
