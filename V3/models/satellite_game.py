@@ -2,19 +2,22 @@
 """
 Created on Fri Jan 22 16:36:48 2021
 
-Satellite game contains the costs, states, actions of a satellite game. 
+Satellite game. 
 
-States: each state corresponds to an initial orbit where there's a satellite.
-Actions: each action corresponds to a final orbit where there should be a
-    satellite.
-Costs: The hohnman trasfer velocity to get from initial orbit (state) to final
- orbit (action).
- 
 @author: Sarah Li
 """
 import util.orbital_mechanics as om
 
 class satellite_game:
+    """ Satellite game contains the costs, states, actions of a satellite game. 
+    
+        States: each state corresponds to an initial orbit where there's a 
+        satellite.
+        Actions: each action corresponds to a final orbit where there should be
+        a satellite.
+        Costs: The hohnman trasfer velocity to get from initial orbit (state)
+        to final orbit (action).
+    """
     def __init__(self, r_init_set, r_final_set):
         """ Initialize satellite game.
         
