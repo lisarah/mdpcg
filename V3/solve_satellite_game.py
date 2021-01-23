@@ -17,6 +17,6 @@ satellite_game = s_game.satellite_game(r_init, r_final)
 initial_prices = [0, 1]
 optimal_assignment = auction.auction(satellite_game, initial_prices)
 
-for action, state in optimal_assignment.values():
+for action, state in optimal_assignment.items():
     print(f'initial orbit {satellite_game.states[state]} -> '
           f'final orbit {satellite_game.actions[action]}')

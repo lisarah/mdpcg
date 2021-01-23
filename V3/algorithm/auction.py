@@ -13,7 +13,7 @@ s.t.\sum_{a} y_{sa} = 1, \forall s \in [S]
 @author: Sarah Li
 """
 
-def auction(flow_problem, initial_prices, epsilon = 0.01):
+def auction(flow_problem, initial_prices, epsilon = 0.01, verbose = False):
     """ The auction algorithm for solving minimum flow problem. 
     
     Args:
@@ -34,8 +34,11 @@ def auction(flow_problem, initial_prices, epsilon = 0.01):
         optimal_bidders[a_ind] = None
         
     unassigned_bidders = [x for x in range(state_num)] # everyone is unassigned
-    while len(unassigned_bidders) > 0:
-        print (unassigned_bidders)
+    # print (unassigned_bidders)
+    max_iter = 100
+    iteration = 0
+    while len(unassigned_bidders) > 0 and iteration < max_iter:
+        iteration += 1
         bids = {}
         for a_ind in range(action_num):
             bids[a_ind] = {}
@@ -45,10 +48,12 @@ def auction(flow_problem, initial_prices, epsilon = 0.01):
             deltas = []
             for a_ind in range(action_num):
                 deltas.append(prices[a_ind] - flow_problem.cost[s_ind][a_ind])
-            best_delta_ind = deltas.index(max(deltas))
+            best_delta = max(deltas)
+            best_delta_ind = deltas.index(best_delta)
             deltas.pop(best_delta_ind)
             second_best_delta = max(deltas)
-            bid_price = prices[best_delta_ind] - second_best_delta - epsilon
+            delta_delta = best_delta - second_best_delta
+            bid_price = prices[best_delta_ind] - delta_delta - epsilon
             bids[best_delta_ind][bid_price] = s_ind
         
         # actions delegated to the lowest bidder
@@ -63,6 +68,10 @@ def auction(flow_problem, initial_prices, epsilon = 0.01):
                         unassigned_bidders.append(optimal_bidders[a_ind])
                     unassigned_bidders.remove(winner_ind)
                     optimal_bidders[a_ind] = winner_ind
-
+                if verbose:
+                    print (f'action {a_ind} has new bidder {winner_ind}')
+                
+    if iteration >= max_iteration:
+        print('warning: max iteration reached in auction algorithm.')
     return optimal_bidders 
             
