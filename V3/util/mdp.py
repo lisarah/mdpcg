@@ -175,25 +175,7 @@ def generateGridMDP(v,a,G,p = 0.8,test = False):
     else:
         c = np.random.uniform(size=(v,a))
     return P,c;
-#----------convert cvx variable dictionary into an array of dictated shape
-def cvxDict2Arr(optDict, shapeList):
-    arr = np.zeros(shapeList);
-    for DIter, key in enumerate(optDict):
-        arr[key] = optDict[key].value;
-    return arr;
-#----------convert cvx variable list into an array of dictated shape,
-# mostly used for dual variables, since the cvx constraints are in lists
-def cvxList2Arr(optList,shapeList,isDual):
-    arr = np.zeros(shapeList);
-    it = np.nditer(arr, flags=['f_index'], op_flags=['writeonly'])    
-    for pos, item in enumerate(optList):
-        if isDual:
-            it[0] = item.dual_value;
-        else:
-            it[0] = item.value;
-        
-        it.iternext();                    
-    return arr;
+
 
 
         

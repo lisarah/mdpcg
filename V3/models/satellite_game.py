@@ -6,7 +6,9 @@ Satellite game.
 
 @author: Sarah Li
 """
+import numpy as np
 import util.orbital_mechanics as om
+
 
 class satellite_game:
     """ Satellite game contains the costs, states, actions of a satellite game. 
@@ -39,6 +41,10 @@ class satellite_game:
                     action_ind += 1
                 self.cost[-1].append(om.hohnman_transfer(r_init, r_final))
             state_ind += 1
+        self.cost = np.array(self.cost)
 
-                
-
+    def set_objective(self, y_sa):
+        objective = sum([ sum([ 
+            y_sa[s,a] * self.cost[s,a] 
+            for a in self.actions.keys()]) for s in self.states.keys()])
+        return objective

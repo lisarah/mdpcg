@@ -47,7 +47,7 @@ def auction(flow_problem, initial_prices, epsilon = 0.01, verbose = False):
         for s_ind in unassigned_bidders:
             deltas = []
             for a_ind in range(action_num):
-                deltas.append(prices[a_ind] - flow_problem.cost[s_ind][a_ind])
+                deltas.append(prices[a_ind] - flow_problem.cost[s_ind,a_ind])
             best_delta = max(deltas)
             best_delta_ind = deltas.index(best_delta)
             deltas.pop(best_delta_ind)
@@ -71,7 +71,7 @@ def auction(flow_problem, initial_prices, epsilon = 0.01, verbose = False):
                 if verbose:
                     print (f'action {a_ind} has new bidder {winner_ind}')
                 
-    if iteration >= max_iteration:
+    if iteration >= max_iter:
         print('warning: max iteration reached in auction algorithm.')
     return optimal_bidders 
             

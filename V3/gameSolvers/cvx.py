@@ -6,6 +6,7 @@ Created on Sat Aug  3 15:59:58 2019
 """
 import util.mdp as mdp
 import util.utilities as ut
+import util.cvx_util as cutil
 import cvxpy as cvx
 
 import models.mdpcg as mdpcg
@@ -159,11 +160,11 @@ class cvx_solver(mdpcg.quad_game):
         
         mdpRes = mdpPolicy.solve(solver=cvx.ECOS, verbose=verbose)
         print (mdpRes)
-        optRes = mdp.cvxDict2Arr(self.y_ijt,[states,actions,time])
+        optRes = cutil.cvxDict2Arr(self.y_ijt,[states,actions,time])
        
         
         if returnDual:
-            self.optimalDual = mdp.cvxList2Arr(self.massConservation,[states,time-1],returnDual)
+            self.optimalDual = cutil.cvxList2Arr(self.massConservation,[states,time-1],returnDual)
             return optRes,self.optimalDual
         else:
             return optRes, mdpRes
@@ -215,7 +216,7 @@ class cvx_solver(mdpcg.quad_game):
         mdpRes = mdpPolicy.solve(solver=cvx.ECOS, verbose=verbose)
         
         print (mdpRes)
-        optRes = mdp.cvxDict2Arr(self.y_ijt,[states,actions,time])
-        optDual = mdp.cvxList2Arr(self.stateConstraints,[len(self.stateConstraints)],True)
+        optRes = cutil.cvxDict2Arr(self.y_ijt,[states,actions,time])
+        optDual = cutil.cvxList2Arr(self.stateConstraints,[len(self.stateConstraints)],True)
         self.optimalDual = ut.truncate(optDual)   
         return optRes    
