@@ -19,8 +19,7 @@ initial_prices = [0, 1]
 optimal_assignment = auction.auction(satellite_game, initial_prices)
 
 for action, state in optimal_assignment.items():
-    print(f'initial orbit {satellite_game.states[state]} -> '
-          f'final orbit {satellite_game.actions[action]}')
+    print(f'initial orbit {state} ->  final orbit {action}')
 
 
 # CVX solution
