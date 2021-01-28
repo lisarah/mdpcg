@@ -97,9 +97,10 @@ StIsl_trips = borough_trips(nyjan2019_trips, StIsl_zones)
 # Output: Array and plot of trip occurrences per borough zone 
 def trip_plot(borough_trips, borough_zones_list, borough_name):
     hist = np.histogram([trips.zone_pu for trips in borough_trips], bins = borough_zones_list)    
-    borough_zones_str = [str(x) for x in np.delete(StIsl_zones, -1)]
+    np.delete(borough_zones_list, -1)
+    borough_zones_str = [str(x) for x in borough_zones_list]
 
-    fig = plt.figure(figsize=(8,5))
+    fig = plt.figure(figsize=(20,5))
     ax = fig.add_axes([0,0,1,1])
     ax.bar(borough_zones_str, hist[0])
 
@@ -112,7 +113,8 @@ def trip_plot(borough_trips, borough_zones_list, borough_name):
     return hist
     
 # Count and sort all trips originating in Staten Island
-StIsl_trip_hist = trip_plot(StIsl_trips, StIsl_zones, area)
+#StIsl_trip_hist = trip_plot(StIsl_trips, StIsl_zones, area)
+
 
 #%% STATE TRANSITION PROBABILITY %%#
 # Define transition probability matrix function
