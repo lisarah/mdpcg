@@ -54,8 +54,8 @@ class cvx_satellite(satellite_game.satellite_game):
         cvx_problem= cvx.Problem(cvx_objective, self.constraints)
         cvx_solution = cvx_problem.solve(verbose=verbose) # solver=cvx.ECOS, 
         
-        print (f'minimized total cost is {cvx_solution}')
+        # print (f'minimized total cost is {cvx_solution}')
         optRes = cutil.cvx_array_2_array(self.y_sa)
-        print (f'optimized assignment is \n{optRes}')
+        print (f'cvx minimized distribution \n{np.round(optRes, 2)}')
         return optRes
         
