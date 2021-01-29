@@ -74,7 +74,7 @@ for i in range(new_york_jan_2019.shape[0]):
 
 #%% TRIP SORTING %%#
 # Define borough trip sorting function
-# Input: array of borough zones | list of overall trips to be sorted
+# Input: array of borough zones | list of overall trips to be sorted 
 # Output: list of trips that begin in borough of interest
 def borough_trips(trip_list, borough_zones_list):
     borough_trip_list = []
@@ -84,21 +84,48 @@ def borough_trips(trip_list, borough_zones_list):
     
     return borough_trip_list
 
+# Define time sorting function
+# Input: list of trips that begin in borough of interest | time bounds (decimal)
+# Output: list of trips in borough that begin within certain time-range
+def time_sorted_trips(borough_trip_list, timeA, timeB):
+    boolean_index = np.array([False for trip in borough_trip_list])
+    for count, trip_instance in enumerate(borough_trip_list):
+        if trip_instance.putime > 9 and trip_instance.putime < 12:
+            boolean_index[count] = True
+    
+    borough_trip_list_np = np.array(borough_trip_list)
+    time_sorted_trip = borough_trip_list_np[boolean_index]
+    
+    borough_time_sorted_trips = time_sorted_trip.tolist()
+    
+    return borough_time_sorted_trips
+
 
 # Extract all trips originating in Staten Island Borough
-area = 'Staten Island'
-StIsl_zones = zone_list(area)
-StIsl_trips = borough_trips(nyjan2019_trips, StIsl_zones)
+# area = 'Staten Island'
+# StIsl_zones = zone_list(area)
+# StIsl_trips = borough_trips(nyjan2019_trips, StIsl_zones)
 
+area = 'Manhattan'
+Man_zones = zone_list(area)
+Man_trips = borough_trips(nyjan2019_trips, Man_zones)
+Man_trips_rush_hour = time_sorted_trips(Man_trips, 9, 12)
 
+#%% TAU CALCULATION %%#
+
+def tau_calculation(borough_time_sorted_trips):
+    tau = np.mean(np.array([trips.trip_time for trips in borough_time_sorted_trips]))
+    
+    return tau
+    
+Man_tau = tau_calculation(Man_trips_rush_hour)
 #%% ZONE HISTOGRAM %%#
 # Define trip occurence plotting function
 # Input: list of trips beginning in borough of interest | array of zones in borough of interest | string containing borough name
 # Output: Array and plot of trip occurrences per borough zone 
 def trip_plot(borough_trips, borough_zones_list, borough_name):
     hist = np.histogram([trips.zone_pu for trips in borough_trips], bins = borough_zones_list)    
-    np.delete(borough_zones_list, -1)
-    borough_zones_str = [str(x) for x in borough_zones_list]
+    borough_zones_str = [str(x) for x in np.delete(borough_zones_list, -1)]
 
     fig = plt.figure(figsize=(20,5))
     ax = fig.add_axes([0,0,1,1])
@@ -114,6 +141,8 @@ def trip_plot(borough_trips, borough_zones_list, borough_name):
     
 # Count and sort all trips originating in Staten Island
 #StIsl_trip_hist = trip_plot(StIsl_trips, StIsl_zones, area)
+
+Man_trip_hist = trip_plot(Man_trips_rush_hour, Man_zones, area)
 
 
 #%% STATE TRANSITION PROBABILITY %%#
@@ -158,7 +187,7 @@ def state_transition_matrix(borough_trip_list, borough_hist):
     ext_state_col = np.zeros((len(zones),1))
     ext_state_row = np.zeros((len(zones)+1))
     for i in range(len(zones)):
-        ext_state_col[i] = 1 - np.sum(state_matrix[i,:-1])
+        ext_state_col[i] = 1.000000 - np.sum(state_matrix[i,:-1])
     
     state_matrix = np.hstack((state_matrix, ext_state_col))
     
@@ -168,10 +197,10 @@ def state_transition_matrix(borough_trip_list, borough_hist):
     return np.nan_to_num(state_matrix)
      
 # Create transition matrix      
-StIsl_matrix = state_transition_matrix(StIsl_trips, StIsl_trip_hist)           
+#StIsl_matrix = state_transition_matrix(StIsl_trips, StIsl_trip_hist)           
     
 
-
+Man_transition_matrix = state_transition_matrix(Man_trips_rush_hour, Man_trip_hist)
     
 
 
