@@ -13,10 +13,12 @@ With anaconda:
 import shapefile
 from shapely.geometry import Polygon
 from descartes.patch import PolygonPatch
+import math
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import models.taxi_dynamics.manhattan_neighbors as m_neighbors
 
 def get_boundaries(sf):
     lat, lon = [], []
@@ -44,7 +46,74 @@ def get_lat_lon(sf):
         
         content.append((loc_id, x, y))
     return pd.DataFrame(content, columns=["LocationID", "longitude", "latitude"])
+def draw_manhattan(ax, sf, densities = {}):
+    continent_color = [235/256, 151/256, 78/256]
+    ocean_color = (89/256, 171/256, 227/256) 
+    ax.set_facecolor(ocean_color)
+    manhattan = 'Manhattan'
+    
+    reg_list = {'Manhattan': 4}
+    reg_x = {'Manhattan':[]}
+    reg_y = {'Manhattan': []}
+    # colorbar
+    if len(densities) != 0:
+        norm = mpl.colors.Normalize(vmin=math.sqrt(min(densities.values())), 
+                                    vmax=math.sqrt(max(densities.values()))) 
+        #norm = mpl.colors.LogNorm(vmin=1,vmax=max(heat))
+        cm=plt.get_cmap('Reds')
+    for sr in sf.shapeRecords():
+        shape = sr.shape
+        rec = sr.record
+        reg_name = rec[shp_dic['borough']]
+        
+        if reg_name == 'Manhattan':
+            zone_ind = m_neighbors.ZONE_IND[rec[shp_dic['zone']]]
+        if reg_name == 'Manhattan' and zone_ind not in [107, 105]:
+            # print('Drawing')
+            if len(densities) == 0:
+                norm = mpl.colors.Normalize(vmin=1,vmax=6) 
+                #norm = mpl.colors.LogNorm(vmin=1,vmax=max(heat))
+                cm=plt.get_cmap('Pastel1')
+                R,G,B,A = cm(norm(reg_list[reg_name]))
+                col = [R,G,B]
+            else:
+               
+                # print (rec[shp_dic['zone']])
+                # print(zone_ind)
+                R,G,B,A = cm(norm(math.sqrt(densities[zone_ind])))
+                col = [R,G,B]
+            
+            # check number of parts (could use MultiPolygon class of shapely?)
+            nparts = len(shape.parts) # total parts
+            if nparts == 1:
+                polygon = Polygon(shape.points)
+                patch = PolygonPatch(polygon, facecolor=col, alpha=1.0, zorder=2)
+                ax.add_patch(patch)
+            else: # loop over parts of each shape, plot separately
+                for ip in range(nparts): # loop over parts, plot separately
+                    i0 = shape.parts[ip]
+                    if ip < nparts-1:
+                        i1 = shape.parts[ip+1]-1
+                    else:
+                        i1 = len(shape.points)
+    
+                    polygon = Polygon(shape.points[i0:i1+1])
+                    patch = PolygonPatch(polygon, facecolor=col, alpha=1.0, zorder=2)
+                    ax.add_patch(patch)
+                    
+            reg_x[reg_name].append((shape.bbox[0]+shape.bbox[2])/2)
+            reg_y[reg_name].append((shape.bbox[1]+shape.bbox[3])/2)
+        
+    plt.text(np.mean(reg_x[manhattan]), np.mean(reg_y[manhattan]), 
+            manhattan, horizontalalignment='center', verticalalignment='center',
+            bbox=dict(facecolor='black', alpha=0.5), color="white", fontsize=12) 
+     
 
+    # display
+    limits = get_boundaries(sf)
+    plt.xlim(limits[0], limits[1])
+    plt.ylim(limits[2], limits[3])
+    
 def draw_region_map(ax, sf, heat={}):
     continent = [235/256, 151/256, 78/256]
     ocean = (89/256, 171/256, 227/256)    
@@ -190,10 +259,14 @@ df_loc = pd.DataFrame(shp_attr).join(get_lat_lon(sf).set_index("LocationID"), on
 print(df_loc.head())
 
 fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(15,8))
-ax = plt.subplot(1, 2, 1)
+ax = plt.subplot(1, 1, 1)
 ax.set_title("Boroughs in NYC")
-draw_region_map(ax, sf)
-ax = plt.subplot(1, 2, 2)
-ax.set_title("Zones in NYC")
-draw_zone_map(ax, sf)
+density_dict = {}
+for zone_ind in m_neighbors.zone_neighbors.keys():
+    density_dict[zone_ind] = np.random.rand()
+
+draw_manhattan(ax, sf, density_dict)
+# ax = plt.subplot(1, 2, 2)
+# ax.set_title("Zones in NYC")
+# draw_zone_map(ax, sf)
 plt.show()
