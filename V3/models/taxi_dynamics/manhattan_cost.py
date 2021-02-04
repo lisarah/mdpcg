@@ -5,11 +5,15 @@ Created on Wed Feb  3 19:37:56 2021
 Calculates the congestion costs using the cost model from
 https://arxiv.org/abs/1903.00747
 
+Code requires Haversine
+conda install -c conda-forge haversine
+ 
 @author: Sarah Li
 """
 import numpy as np
 import models.taxi_dynamics.manhattan_neighbors as manhattan
 import models.taxi_dynamics.visualization as geography
+from haversine import haversine
 class congestion_parameters:
     def __init__(self):
         self.tau = 27.  # $/hr
@@ -20,13 +24,7 @@ class congestion_parameters:
         # reward constant for going somewhere else
         self.k = self.tau/self.vel + self.fuel/self.fuelEff
         
-        
-def zone_distance(a, b):
-    """TODO not implemented yet.
-    Return the 2 norm distance between zone a and zone b.
-    """
-    a_lat_km = a[0]
-    return 10
+
 
 def avg_trip_distance(s):
     """TODO not implemented yet.
@@ -50,6 +48,7 @@ def congestion_cost(ride_demand, T ,S, A, epsilon = 0):
     R = np.zeros((S, A , T))
     params = congestion_parameters()
     state_ind  = manhattan.zone_to_state(manhattan.zone_neighbors)
+    zone_ind = {z_ind: s_ind for s_ind, z_ind in state_ind.items()}
     zone_geography = geography.get_zone_locations('Manhattan')
     for t in range(T):
         for s in range(S):
@@ -63,9 +62,10 @@ def congestion_cost(ride_demand, T ,S, A, epsilon = 0):
                     neighbor = manhattan.STATE_NEIGHBORS[s][a]
                 else:
                     neighbor = manhattan.STATE_NEIGHBORS[s][N_neighbors - 1]
-                s_latlon = zone_geography[state_ind[s]]
-                n_latlon = zone_geography[state_ind[neighbor]]
-                C[s, a, t] = -params.k*zone_distance(s_latlon, n_latlon)
+                s_latlon = zone_geography[zone_ind[s]]
+                n_latlon = zone_geography[zone_ind[neighbor]]
+                # haversine returns distance between two lat-lon tuples in km.
+                C[s, a, t] = -params.k*haversine(s_latlon, n_latlon) 
                 R[s, a, t] = epsilon # indedpendent of distance
                  
     return R, C

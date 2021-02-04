@@ -5,7 +5,7 @@ Created on Wed Feb  3 22:56:42 2021
 Manhattan visualization - 
 following here: https://chih-ling-hsu.github.io/2018/05/14/NYC#location-data
 
-First install descartes, shapefile and shapely. 
+Code requires descartes, shapefile and shapely. 
 With anaconda: 
     - conda install -c conda-forge pyshp shapely descartes
 @author: Sarah Li
@@ -36,7 +36,7 @@ def get_boundaries(shape_file, record_fields, borough_str):
             lat.extend([zone.shape.bbox[0], zone.shape.bbox[2]])
             lon.extend([zone.shape.bbox[1], zone.shape.bbox[3]])
 
-    margin = 0.01 # buffer to add to the range
+    margin = 1e-12 # buffer to add to the range
     lat_min = min(lat) - margin
     lat_max = max(lat) + margin
     lon_min = min(lon) - margin
@@ -63,7 +63,7 @@ def get_lat_lon(shape_file, record_fields):
     return pd.DataFrame(content, columns=[loc_id_str, lon_str, lat_str])
 
 def get_zone_locations(borough_str):
-    """ Return each zone's longitude/latitude."""
+    """ Return each zone's longitude/latitude as a dictionary of tuples."""
     shape_file = shapefile.Reader("models/taxi_dynamics/shape/taxi_zones.shp")
     fields_name = [field[0] for field in shape_file.fields[1:]]
     shape_fields = dict(zip(fields_name, list(range(len(fields_name)))))
@@ -77,7 +77,7 @@ def get_zone_locations(borough_str):
     borough_only = df_loc[df_loc.borough == borough_str]
     zone_geography = {}
     for data in borough_only.itertuples():
-        zone_geography[data.LocationID] = [data.latitude, data.longitude]
+        zone_geography[data.LocationID] = (data.latitude, data.longitude)
     return zone_geography
     
     
@@ -131,15 +131,21 @@ def draw_borough(ax, shape_file, densities, record_fields, borough_str):
         record = shape_entry.record
         borough_name = record[record_fields['borough']]
         
-        if borough_name == borough_str:
-            zone_ind = m_neighbors.ZONE_IND[record[record_fields['zone']]]
-        if borough_name == borough_str and zone_ind not in [107, 105]:
-            R,G,B,A = color_map(norm(math.sqrt(densities[zone_ind])))
-            color = [R,G,B]              
-            draw_shape(ax, shape, color)
+        if (record[record_fields['zone']] ==
+            "Governor's Island/Ellis Island/Liberty Island"):
+            continue            
+        elif borough_name != borough_str:
+            continue
+        zone_ind = m_neighbors.ZONE_IND[record[record_fields['zone']]]
+        if zone_ind in [103, 104, 105, 153, 194, 202]:
+            continue
+            
+        R,G,B,A = color_map(norm(math.sqrt(densities[zone_ind])))
+        color = [R,G,B]              
+        draw_shape(ax, shape, color)
 
-            zone_x.append((shape.bbox[0] + shape.bbox[2]) / 2)
-            zone_y.append((shape.bbox[1] + shape.bbox[3]) / 2)
+        zone_x.append((shape.bbox[0] + shape.bbox[2]) / 2)
+        zone_y.append((shape.bbox[1] + shape.bbox[3]) / 2)
             
     # display borough name  
     plt.text(np.min(zone_x), np.max(zone_y), borough_str, 

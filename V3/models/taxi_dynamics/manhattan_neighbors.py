@@ -45,7 +45,7 @@ zone_neighbors = {
 	148: [45, 79, 144, 232],
 	151: [24, 43, 151],
 	152: [42, 116, 166],
-    153: [128, 999],
+    # 153: [128, 999],
 	158: [68, 125, 246, 249],
 	161: [162, 163, 164, 170, 230],
 	162: [161, 163, 170, 229, 233, 237],
@@ -54,8 +54,8 @@ zone_neighbors = {
 	166: [24, 41, 152],
 	170: [107, 137, 161, 162, 164, 233],
 	186: [68, 90, 100, 164, 234],
-    194: [74, 999],
-    202: [140, 999],
+    # 194: [74, 999],
+    # 202: [140, 999],
     209: [45, 87, 231, 261],
 	211: [114, 125, 144, 231],
 	224: [4, 79, 107, 137],
@@ -76,8 +76,14 @@ zone_neighbors = {
 	261: [12, 13, 87, 88, 209, 231],
     262: [75, 140, 263],
 	263: [75, 141, 236, 262],
-    999: [42, 74, 194, 202, 120, 153, 128, 233, 243, 45, 12, 125, 246],
+    # 999: [42, 74, 194, 202, 120, 153, 128, 233, 243, 45, 12, 125, 246],
 }
+# Excluding state 999 for now
+exclude_states = [153, 194, 202, 999]
+for zone, neighbors in zone_neighbors.items():
+    for state in exclude_states:
+        if state in neighbors:
+            neighbors.remove(state)
 
 
 def zone_to_state(neighbors_dict):
@@ -143,9 +149,9 @@ ZONE_IND = {
 	'Financial District South': 88,
 	'Flatiron': 90,
 	'Garment District': 100,
-	"Governor's Island/Ellis Island/Liberty Island": 103,
-	"Governor's Island/Ellis Island/Liberty Island": 104,
-	"Governor's Island/Ellis Island/Liberty Island": 105,
+# 	"Governor's Island": 103,
+# 	"Ellis Island": 104,
+# 	"Liberty Island": 105,
 	'Gramercy': 107,
 	'Greenwich Village North': 113,
 	'Greenwich Village South': 114,
