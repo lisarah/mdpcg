@@ -4,15 +4,12 @@ Created on Fri Jan 29 12:09:47 2021
 
 Kernel of Manhattan's MDP dynamics.
 
-103, 104, and 105 are individual island zones, 
-they will be removed from the MDP model.
+103, 104, and 105 are individual island zones, they will be removed from the 
+MDP model.
 
-@author: Sarah Li
+@author: Sarah Li, Nico Miguel
 """
-import numpy as np
-
-
-manhattan_zone_neighbors = {
+zone_neighbors = {
 	4: [79, 224, 232],
 	12: [13, 88, 261, 999],
 	13: [12, 231, 261],
@@ -83,18 +80,18 @@ manhattan_zone_neighbors = {
 }
 
 
-def zone_to_state(zone_neighbors):
+def zone_to_state(neighbors_dict):
     """ Converts a zone based dictionary to [0,S] index-based indices.
     
     Args:
-        zone_neighbors: a zone-based dictionary, where the key is the zone 
+        neighbors_dict: a zone-based dictionary, where the key is the zone 
             number, and the entry is a list of neighboring zones.
     Returns:
         new_keys: a dictionary with [zone_ind] -> [state_ind] as items. 
     """
     new_keys = {}
     s_ind = 0
-    for state in zone_neighbors.keys():
+    for state in neighbors_dict.keys():
         new_keys[state] = s_ind
         s_ind +=1
     return new_keys
@@ -118,63 +115,15 @@ def state_neighbors_dictionary(neighbors_dict):
     return state_dictionary
 
 
-MANHATTAN_STATE_NEIGHBORS = state_neighbors_dictionary(manhattan_zone_neighbors)
+STATE_NEIGHBORS = state_neighbors_dictionary(zone_neighbors)
 
 
-def _most_neighbors(neighbors_dict):
+def most_neighbors(neighbors_dict):
     max_neighbors = 0
     for state, neighbors in neighbors_dict.items():
         max_neighbors = max([len(neighbors), max_neighbors])
     return max_neighbors
 
-def manhattan_transition_kernel(T, epsilon):
-    """ Return a  4 dimensional transition kernel for Manhattan's MDP dynamics.
-    
-    Args: 
-        T: total number of time steps within the MDP
-        epsilon: the probability of not getting to neighbor state
-    Returns:
-        P: [T] x [S] x [S] x [A] transition kernel as ndarray.
-        P_{ts'sa} is the probability of transitioning to s' from (s,a) at t.
-    """
-    S = len(MANHATTAN_STATE_NEIGHBORS)
-    A = _most_neighbors(MANHATTAN_STATE_NEIGHBORS)
-    # true action is A + 1: last action is reserved for picking up passengers.
-    P_t = np.zeros((S, S, A + 1))  # kernel per time step. 
-    
-    for state, neighbors in MANHATTAN_STATE_NEIGHBORS.items():
-        N_n = len(neighbors) # number of neighbors
-        # probability of arriving at correct neighbor
-        p_target = 1 - N_n / (N_n -1) * epsilon
-        # probability of arriving at another neighbor
-        p_other_neighbor = epsilon/(N_n - 1) 
-        
-        action_ind = -1
-        while action_ind < A:
-            action_ind += 1
-            neighbor = neighbors[-1]
-            if action_ind < N_n:
-                neighbor = neighbors[action_ind]
-            # action goes to correct neighbor
-            P_t[neighbor, state, action_ind] = p_target
-            # action may take player to other neighbors
-            for other_n in neighbors:
-                P_t[other_n, state, action_ind] += p_other_neighbor
-                
-    P = np.zeros((T, S, S, A + 1))
-    for t in range(T):
-        P[t, :, :, :] = P_t
-    return P
-            
-def test_manhattan_transition_kernel(P):
-    (T, S, _, A) = P.shape
-    for t in range(T):
-        for a in range(A-1):
-            M = P[t, :, :, a]
-            for s in range(S):
-                col_sum = np.sum(M[:,s])
-                # column stochasticity
-                np.testing.assert_approx_equal(col_sum, 1, 4)
     
     
     

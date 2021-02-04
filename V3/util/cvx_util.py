@@ -7,14 +7,13 @@ CVX variable to value array conversions.
 @author: Sarah Li
 """
 import numpy as np
-import cvxpy as cvx
 
 #----------convert cvx variable dictionary into an array of dictated shape
 def cvxDict2Arr(optDict, shapeList):
     arr = np.zeros(shapeList);
     for DIter, key in enumerate(optDict):
         arr[key] = optDict[key].value;
-    return arr;
+    return arr
 #----------convert cvx variable list into an array of dictated shape,
 # mostly used for dual variables, since the cvx constraints are in lists
 def cvxList2Arr(optList,shapeList,isDual):

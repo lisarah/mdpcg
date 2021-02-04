@@ -2,9 +2,8 @@
 """
 Created on Sat Aug  3 15:59:58 2019
 
-@author: craba
+@author: Sarah Li
 """
-import util.mdp as mdp
 import util.utilities as ut
 import util.cvx_util as cutil
 import cvxpy as cvx
@@ -27,12 +26,13 @@ class cvx_solver(mdpcg.quad_game):
     epsilon = 0.1 # for exact penalty
     optimalDual = None
 #------------ initialize solver ----------------------------
-    def __init__(self, time_steps = 20):
-        super().__init__(time_steps)
+    def __init__(self, time_steps = 20, manhattan = False):
+        super().__init__(time_steps, manhattan)
         for i in range(self.States):
             for j in range(self.Actions):
                 for t in range(self.Time):
                     self.y_ijt[(i,j,t)] = cvx.Variable()
+ 
 #------------ set a constrained state-----------------------------
     def setConstrainedState(self, constrainedState, bound = None, 
                             isLB = True, verbose = False):
@@ -128,7 +128,6 @@ class cvx_solver(mdpcg.quad_game):
             if verbose:
                 print ("objective is set")
             self.objective_value = self.get_objective(isSocial)
-            
         lp = None    
         # construct LP objective  
         if withPenalty:
@@ -161,7 +160,6 @@ class cvx_solver(mdpcg.quad_game):
         mdpRes = mdpPolicy.solve(solver=cvx.ECOS, verbose=verbose)
         print (mdpRes)
         optRes = cutil.cvxDict2Arr(self.y_ijt,[states,actions,time])
-       
         
         if returnDual:
             self.optimalDual = cutil.cvxList2Arr(self.massConservation,[states,time-1],returnDual)
