@@ -9,7 +9,7 @@ https://arxiv.org/abs/1903.00747
 """
 import numpy as np
 import models.taxi_dynamics.manhattan_neighbors as manhattan
-
+import models.taxi_dynamics.visualization as geography
 class congestion_parameters:
     def __init__(self):
         self.tau = 27.  # $/hr
@@ -25,6 +25,7 @@ def zone_distance(a, b):
     """TODO not implemented yet.
     Return the 2 norm distance between zone a and zone b.
     """
+    a_lat_km = a[0]
     return 10
 
 def avg_trip_distance(s):
@@ -48,6 +49,8 @@ def congestion_cost(ride_demand, T ,S, A, epsilon = 0):
     C = np.zeros((S, A , T))
     R = np.zeros((S, A , T))
     params = congestion_parameters()
+    state_ind  = manhattan.zone_to_state(manhattan.zone_neighbors)
+    zone_geography = geography.get_zone_locations('Manhattan')
     for t in range(T):
         for s in range(S):
             a = A - 1  # picking up riders
@@ -60,7 +63,9 @@ def congestion_cost(ride_demand, T ,S, A, epsilon = 0):
                     neighbor = manhattan.STATE_NEIGHBORS[s][a]
                 else:
                     neighbor = manhattan.STATE_NEIGHBORS[s][N_neighbors - 1]
-                C[s, a, t] = -params.k*zone_distance(neighbor, s)
+                s_latlon = zone_geography[state_ind[s]]
+                n_latlon = zone_geography[state_ind[neighbor]]
+                C[s, a, t] = -params.k*zone_distance(s_latlon, n_latlon)
                 R[s, a, t] = epsilon # indedpendent of distance
                  
     return R, C
