@@ -42,6 +42,7 @@ from matplotlib import colors
 from matplotlib import cm
 import math
 import util.trip as trip
+from collections import defaultdict
 #%% DATA %%#
 # Import trip data into numpy array
 data_file_name = "D:\\Behcet\\GameTheory\\NewYorkUber\\yellow_tripdata_2019-01.csv"
@@ -119,6 +120,8 @@ def tau_calculation(borough_time_sorted_trips):
     return tau
     
 Man_tau = tau_calculation(Man_trips_rush_hour)
+
+
 #%% ZONE HISTOGRAM %%#
 # Define trip occurence plotting function
 # Input: list of trips beginning in borough of interest | array of zones in borough of interest | string containing borough name
@@ -202,5 +205,37 @@ def state_transition_matrix(borough_trip_list, borough_hist):
 
 Man_transition_matrix = state_transition_matrix(Man_trips_rush_hour, Man_trip_hist)
     
+#%% Partitioning trips %%#
 
+# Sort trips into periods of time tau minutes long
+timeRange = 3
+partition_amount = math.ceil(timeRange/Man_tau)
+time_partition_bins = np.linspace(9,12,partition_amount+1)
 
+# Create histogram for number of trips per 12 minute partition
+Man_time_partition_hist = np.histogram([trip.putime for trip in Man_trips_rush_hour], bins = time_partition_bins)
+
+def partition(borough_trip_list, partition_hist):
+    freq = partition_hist[0]
+    time_zones = partition_hist[1]
+    borough_trip_list.sort(key = lambda x: x.putime)
+    
+    trip_partitions = [[] for i in range(len(time_zones)-1)]
+    index = 0
+    for count,_ in enumerate(trip_partitions):
+        index2 = index + freq[count]
+        trip_partitions[count] = borough_trip_list[index:index2]
+        index += freq[count]
+
+    return trip_partitions
+
+Man_rush_hour_partitioned = partition(Man_trips_rush_hour, Man_time_partition_hist)
+
+#%% Partitioned State Transition Matrices %%#
+
+Man_partitioned_transitions = [[] for i in range(len(Man_rush_hour_partitioned))]
+
+for count,_ in enumerate(Man_partitioned_transitions):
+    part_hist = trip_plot(Man_rush_hour_partitioned[count], Man_zones, area)
+    Man_partitioned_transitions[count] = state_transition_matrix(Man_rush_hour_partitioned[count], part_hist)
+    
