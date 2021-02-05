@@ -11,7 +11,7 @@ def random_demand_generation(T, S):
     P_pick_up = np.zeros((T,S, S))
     demand_rate = []
     for s in range(S):
-        demand_rate.append(np.random.randint(1e4, 1e5))
+        demand_rate.append(np.random.randint(1e1, 5e2))
         for t in range(T):
             destinations = np.random.rand(S)
             P_pick_up[t, :, s] = destinations / np.sum(destinations)

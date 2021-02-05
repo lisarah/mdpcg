@@ -17,6 +17,7 @@ class quad_game:
     def __init__(self, Time, manhattan = False, strictlyConvex = True):
         self.Time = Time
         self.verbose = True # debug verbosity.
+        self.tolls = 0
         if manhattan:
             self.manhattan_gen(Time)
         else:  
@@ -37,6 +38,8 @@ class quad_game:
         # cost generation
         self.R, self.C = m_cost.congestion_cost(demand_rate, T, S, A, 
                                                 epsilon = 1e-3)
+        self.R = self.R
+        self.C = self.C
         
         
     def seattle_gen(self, Time, strictlyConvex):

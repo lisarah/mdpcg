@@ -148,10 +148,10 @@ def draw_borough(ax, shape_file, densities, record_fields, borough_str):
         zone_y.append((shape.bbox[1] + shape.bbox[3]) / 2)
             
     # display borough name  
-    plt.text(np.min(zone_x), np.max(zone_y), borough_str, 
+    plt.text(np.min(zone_x)+0.01, np.max(zone_y) - 1e-3, borough_str, 
               horizontalalignment='center', verticalalignment='center', 
               bbox=dict(facecolor='black', alpha=0.5), 
-              color="white", fontsize=20) 
+              color="white", fontsize=24) 
      
     # display
     limits = get_boundaries(shape_file, record_fields, borough_str)
@@ -165,9 +165,9 @@ def animate_borough(borough_str, densities):
     fields_name = [field[0] for field in shape_file.fields[1:]]
     shape_fields = dict(zip(fields_name, list(range(len(fields_name)))))
 
-    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(6,8))
+    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(5.2,8))
     ax = plt.subplot(1, 1, 1)
-    ax.set_title(f"NYC {borough_str}")
+    # ax.set_title(f"NYC {borough_str}")
     
     draw_borough(ax, shape_file, densities, shape_fields, borough_str)
     # ax = plt.subplot(1, 2, 2)

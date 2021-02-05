@@ -21,7 +21,7 @@ class congestion_parameters:
         self.fuel = 28. # $/gal
         self.fuelEff = 20. # mi/gal
         self.rate = 6. # $/mi
-        # reward constant for going somewhere else
+        # cost constant for going somewhere else
         self.k = self.tau/self.vel + self.fuel/self.fuelEff
         
 
@@ -53,7 +53,7 @@ def congestion_cost(ride_demand, T ,S, A, epsilon = 0):
     for t in range(T):
         for s in range(S):
             a = A - 1  # picking up riders
-            C[s, a, t] = (params.rate - params.k) * avg_trip_distance(s) 
+            C[s, a, t] = (params.k - params.rate) * avg_trip_distance(s) 
             R[s, a, t] = params.tau / ride_demand[s]
             neighbors = manhattan.STATE_NEIGHBORS[s]
             N_neighbors = len(neighbors)
@@ -65,7 +65,7 @@ def congestion_cost(ride_demand, T ,S, A, epsilon = 0):
                 s_latlon = zone_geography[zone_ind[s]]
                 n_latlon = zone_geography[zone_ind[neighbor]]
                 # haversine returns distance between two lat-lon tuples in km.
-                C[s, a, t] = -params.k*haversine(s_latlon, n_latlon) 
+                C[s, a, t] = params.k*haversine(s_latlon, n_latlon) 
                 R[s, a, t] = epsilon # indedpendent of distance
                  
     return R, C

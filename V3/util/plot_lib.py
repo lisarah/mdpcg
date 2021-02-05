@@ -23,7 +23,7 @@ def objective(hist, optimal_value, alg_name='algorithm'):
     blue = '#1f77b4ff';
     orange = '#ff7f0eff';
     plt.plot(np.linspace(1, len(hist),len(hist)), 
-             [abs(x - optimal_value)/optimal_value for x in hist], 
+             [abs((x - optimal_value)/optimal_value) for x in hist], 
              linewidth=2, 
              label=f'{alg_name}',
              color=blue)

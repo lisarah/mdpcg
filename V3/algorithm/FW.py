@@ -39,21 +39,21 @@ def FW(x0, p0, P, gradF,
        returnLastGrad = False, 
        maxIterations = 5000, 
        returnHist = True):
-    it = 1;
-    err= 1000.;
-    states, actions, time = x0.shape;
-    gradient = gradF(x0);
-    xk  = x0;
+    it = 1
+    err= 1000.
+    states, actions, time = x0.shape
+    gradient = gradF(x0)
+    xk = x0
+    verbose = True
     if returnHist:
-        xHistory = [];
-        xHistory.append(x0);
-#        totalxK = np.zeros((states,actions,time));
+        xHistory = []
     else:
         xHistory = None;
 
     while it <= maxIterations and abs(err) >= maxError:
         step = 2./(1.+it);
-#        print "error: ", err;
+        if verbose:
+            print ("error: ", err)
         lastX =  1.0*xk;
         lastGrad = 1.0*gradient;
         V, xNext  = dp.value_iteration(gradient, p0, P,isMax);
