@@ -78,13 +78,11 @@ def statePlot(y):
 
 def cumulative_average(x_list):
     N = 1
-    avg_list = []
+    avg_list = [np.zeros(x_list[0].shape)]
     for x in x_list:
-        if avg_list: 
-            next_avg = avg_list[-1]
-        else:
-            next_avg = np.zeros(x_list[0].shape)
-        next_avg = (next_avg * N + x) / N
+        next_avg = (avg_list[-1] * (N - 1) + x) / (N)
+        avg_list.append(next_avg)
         N += 1
+    avg_list.pop(0)
     return avg_list
         

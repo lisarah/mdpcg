@@ -40,11 +40,11 @@ def FW(x0, p0, P, gradF,
        maxIterations = 5000, 
        returnHist = True):
     it = 1
-    err= 1000.
+    err= 1e13
     states, actions, time = x0.shape
     gradient = gradF(x0)
     xk = x0
-    verbose = True
+    verbose = False
     if returnHist:
         xHistory = []
     else:
@@ -75,9 +75,11 @@ def FW(x0, p0, P, gradF,
         return xk, xHistory, err;
     elif returnHist:
 #        print ("FW approx: number of iterations ", it);
-#        print ("FW approx: current error ", err);
+#        
         return xk, xHistory;
     else:
+        if verbose:
+            print (f"FW norm: {np.sum(xk)} ")
         return xk
 
 

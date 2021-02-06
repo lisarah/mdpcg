@@ -7,7 +7,7 @@ Implementation of inexact projected gradient ascent.
 @author: Sarah Li
 """
 from datetime import datetime
-
+import numpy as np
 
 def inexact_pga(tau_0, approx_gradient, step_size, max_iteration = 1000,
                 epsilons = None, verbose = False):
@@ -33,11 +33,11 @@ def inexact_pga(tau_0, approx_gradient, step_size, max_iteration = 1000,
     gradient_hist = []
     t_start = datetime.now()
     for t in range(max_iteration):
-        if verbose and t %10 == 0:
+        if verbose and t %5 == 0:
             t_end = datetime.now()
             t_diff = (t_end - t_start).total_seconds()
             print(f'inexact pga ---- iteration = {t}, time = {t_diff} ----')
-            print(tau_hist[-1])
+            print(np.linalg.norm(tau_hist[-1], 2))
         gradient = approx_gradient(tau_hist[-1], epsilons[t])
         gradient_hist.append(gradient)
         tau_next = tau_hist[-1] + step_size * gradient

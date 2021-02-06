@@ -11,18 +11,20 @@ import util.figureGeneration as fg
 import networkx as nx
 import numpy as np
 import cvxpy as cvx
-
 class quad_game:
 #--------------constructor-------------------------------
     def __init__(self, Time, manhattan = False, strictlyConvex = True):
         self.Time = Time
         self.verbose = True # debug verbosity.
-        self.tolls = 0
         if manhattan:
             self.manhattan_gen(Time)
         else:  
             self.seattle_gen(Time, strictlyConvex)  
+            
+        
+        
     def manhattan_gen(self, T):
+        self.constraint_value= 50
         P_time_vary = m_transition.transition_kernel(T, 0.1)
         self.P = P_time_vary[0,:,:,:]
         m_transition.test_transition_kernel(P_time_vary)
@@ -30,18 +32,15 @@ class quad_game:
         S, _, A = self.P.shape
         self.States = S
         self.Actions = A
+        self.reset_toll()
         P_pick_up, demand_rate = m_transition.random_demand_generation(T, S)
         # the last action in P is for the action of trying to pick up drivers.
         self.P[:,:, A - 1] += P_pick_up[0,:,:]
         
-        
         # cost generation
         self.R, self.C = m_cost.congestion_cost(demand_rate, T, S, A, 
-                                                epsilon = 1e-3)
-        self.R = self.R
-        self.C = self.C
-        
-        
+                                                epsilon = 1e-1)
+
     def seattle_gen(self, Time, strictlyConvex):
         """TODO: move this somewhere else. Seattle MDP and cost generation.
         """
@@ -102,6 +101,7 @@ class quad_game:
             for t in range(self.Time)])
         toll_term = 0
         if constraint_value != 0:
+            # for seattle game
             for toll in tolls:
                 toll_term += 16 * 6 * constraint_value * toll
 
@@ -109,6 +109,7 @@ class quad_game:
 
     def evaluate_cost(self, y):
         """Evaluate cost at current population distribution."""
-        return np.multiply(self.R, y) + self.C  - self.tolls
+        # subtract tolls for the seattle game.
+        return np.multiply(self.R, y) + self.C  +  self.tolls
     def reset_toll(self):
         self.tolls = np.zeros((self.States,self.Actions,self.Time))

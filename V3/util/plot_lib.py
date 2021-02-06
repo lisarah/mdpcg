@@ -17,12 +17,19 @@ def latex_format():
     mpl.rcParams.update({'font.size': 20})
     mpl.rc('legend', fontsize='small')
 
-def objective(hist, optimal_value, alg_name='algorithm'):
+def objective(hist, optimal_value = None, alg_name='algorithm'):
     """ Plot the objective convergence behaviour against true optimal value."""
     fig = plt.figure();
     blue = '#1f77b4ff';
     orange = '#ff7f0eff';
-    plt.plot(np.linspace(1, len(hist),len(hist)), 
+    if optimal_value is None:
+        plt.plot(np.linspace(1, len(hist),len(hist)), 
+                 [abs(x) for x in hist], 
+                 linewidth=2, 
+                 label=f'{alg_name}',
+                 color=blue)
+    else:
+        plt.plot(np.linspace(1, len(hist),len(hist)), 
              [abs((x - optimal_value)/optimal_value) for x in hist], 
              linewidth=2, 
              label=f'{alg_name}',

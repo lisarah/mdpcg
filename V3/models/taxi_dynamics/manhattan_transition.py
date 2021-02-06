@@ -7,11 +7,14 @@ Created on Wed Feb  3 21:31:21 2021
 import models.taxi_dynamics.manhattan_neighbors as manhattan
 import numpy as np
 
+
 def random_demand_generation(T, S):
     P_pick_up = np.zeros((T,S, S))
     demand_rate = []
+    
+    np.random.seed(10)
     for s in range(S):
-        demand_rate.append(np.random.randint(1e1, 5e2))
+        demand_rate.append(np.random.randint(1e1, 2e2))
         for t in range(T):
             destinations = np.random.rand(S)
             P_pick_up[t, :, s] = destinations / np.sum(destinations)
@@ -49,7 +52,7 @@ def transition_kernel(T, epsilon):
         p_other_neighbor = epsilon/(N_n - 1) 
         
         action_ind = -1
-        while action_ind < A:
+        while action_ind < A - 1:
             action_ind += 1
             neighbor = neighbors[-1]
             if action_ind < N_n:

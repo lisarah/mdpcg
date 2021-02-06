@@ -64,7 +64,7 @@ def value_iteration(cost, p0, P, isMax = False):
         x = np.zeros((S,A));
 
         for s in range(S):
-            x[s,int(pol[s])] = traj[s];
+            x[s,int(pol[s])] = 1* traj[s];
         xNext[:,:,t] = 1.0*x;
         trajectory[:,t] =  np.einsum('ijk,jk',P,x);
 

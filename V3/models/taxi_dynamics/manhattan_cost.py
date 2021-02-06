@@ -14,6 +14,8 @@ import numpy as np
 import models.taxi_dynamics.manhattan_neighbors as manhattan
 import models.taxi_dynamics.visualization as geography
 from haversine import haversine
+
+
 class congestion_parameters:
     def __init__(self):
         self.tau = 27.  # $/hr
