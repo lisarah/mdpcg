@@ -59,8 +59,14 @@ for s in range(manhattan_game.States):
     density_dict[zone_ind[s]] = np.sum([y_opt[s, :, t] for t in range(T)])/T
     min_density = min(list(density_dict.values()) + [min_density])
     max_density = max(list(density_dict.values()) + [max_density])
-        
-        
+
+violation_density = {}
+for z in constraint_violation.keys():  
+    time_density = []
+    for t in range(T):
+        time_density.append(np.sum(y_opt[state_ind[z], :, t]))
+    violation_density[z] = time_density
+
 norm = mpl.colors.Normalize(vmin=(min_density), vmax=(max_density))
 color_map = plt.get_cmap('coolwarm')
 bar_colors = []
@@ -73,26 +79,35 @@ fig_width = 5.3 * 2
 f = plt.figure(figsize=(fig_width,8))
 ax_bar = f.add_subplot(2,2,2)
 bar_range = np.arange(1, len(constraint_violation) + 1, 1)
-bar_ind = 0
-seq = [1, 2, 0]
-for violation in constraint_violation.values():
-    plt.bar(bar_range[seq[bar_ind]], violation, width = 0.8, 
-            color=bar_colors[seq[bar_ind]], label=bar_labels[seq[bar_ind]])
-    bar_ind += 1
+seq = [0,2,  1]
+violations = []
+for v in constraint_violation.values(): 
+    violations.append(v)
+loc_ind = 0
+for bar_ind in seq:
+    plt.bar(loc_ind, violations[bar_ind] + constrained_value, 
+            width = 0.8, color=bar_colors[bar_ind], 
+            label=bar_labels[bar_ind])
+    loc_ind +=1
+plt.ylim(250, 250 +1.1*max(constraint_violation.values()))
 ax_bar.xaxis.set_visible(False)
 plt.legend(fontsize=13)
 
 
 f.add_subplot(2, 2, 4)
-plt.plot(np.linspace(1, len(obj_history),len(obj_history)), 
-         [abs(x) for x in obj_history], 
-         linewidth=2, label='Frank Wolfe F_0^k')
-plt.xlabel(r"Iterations (k)",fontsize=13)
-plt.yscale("log")
-plt.xscale('log')
+plt.plot(250*np.ones(T), linewidth = 6, alpha = 0.5, color=[0,0,0])
+lines = []
+for line in violation_density.values(): 
+    lines.append(line)
+for line_ind in seq:
+    plt.plot(lines[line_ind], linewidth=3, 
+             color=bar_colors[line_ind], label=bar_labels[line_ind])
+plt.xlabel(r"Time",fontsize=13)
 plt.grid()
+plt.legend(fontsize=13)
 
 ax = f.add_subplot(1, 2, 1)
 visual.draw_borough(ax, density_dict, borough, 'average', color_map, norm)
-
+ax.xaxis.set_visible(False)
+ax.yaxis.set_visible(False)
 plt.show()

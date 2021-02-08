@@ -67,7 +67,8 @@ def congestion_cost(ride_demand, T ,S, A, epsilon = 0):
                 s_latlon = zone_geography[zone_ind[s]]
                 n_latlon = zone_geography[zone_ind[neighbor]]
                 # haversine returns distance between two lat-lon tuples in km.
-                C[s, a, t] = params.k*haversine(s_latlon, n_latlon) 
+                # 0.621371 converts km to mi.
+                C[s, a, t] = params.k*haversine(s_latlon, n_latlon)*0.621371 
                 R[s, a, t] = epsilon # indedpendent of distance
                  
     return R, C

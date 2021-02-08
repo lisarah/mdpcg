@@ -118,7 +118,7 @@ def draw_borough(ax, densities, borough_str, time,
             key, and record index as value.        
         borough_str: the name of the borough whose density is plotted..
     """
-    ocean_color = (89/256, 171/256, 227/256) 
+    ocean_color = (89/256/3, 171/256/3, 227/256/3) 
     ax.set_facecolor(ocean_color)
     zone_x = []
     zone_y = []
@@ -151,16 +151,17 @@ def draw_borough(ax, densities, borough_str, time,
         zone_y.append((shape.bbox[1] + shape.bbox[3]) / 2)
             
     # display borough name  
-    plt.text(np.min(zone_x)+0.01, np.max(zone_y) - 1e-3, f'Manhattan', 
+    plt.text(np.min(zone_x)+0.025, np.max(zone_y) - 1e-3, f'Manhattan', 
               horizontalalignment='center', verticalalignment='center', 
               bbox=dict(facecolor='black', alpha=0.5), 
               color="white", fontsize=18) 
      
     # display
     limits = get_boundaries(borough_str)
-    plt.xlim(limits[0], limits[1])
-    plt.ylim(limits[2], limits[3])
-    plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=color_map), ax=ax)
+    plt.xlim(limits[0]+0.025, limits[1])
+    plt.ylim(limits[2]+0.015, limits[3])
+    cbar = plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=color_map), ax=ax)
+    cbar.ax.tick_params(labelsize=13) 
     # plt.grid()
  
 def animate_borough(borough_str, densities):

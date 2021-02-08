@@ -15,6 +15,7 @@ import models.taxi_dynamics.visualization as visual
 import util.plot_lib as pt
 import util.utilities as ut
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 
 T = 15
@@ -26,7 +27,7 @@ initial_distribution = m_dynamics.uniform_initial_distribution(10000)
 S = manhattan_game.States
 A = manhattan_game.Actions
 A_tensor = np.zeros((T*S, S, A, T))  
-constrained_value = 300
+constrained_value = 250
 x_ind = 0
 for t in range(T):
     x_ind = t*S
@@ -72,62 +73,107 @@ def approx_gradient(tau, epsilon):
 
 tau_0 = np.zeros((T,S))
 # tau_0 = np.zeros((len(constrained_times)))
-max_iteration = 100
-epsilon_list = [25000 for i in range(max_iteration)]
+max_iteration = 200
+epsilon_list = [15000 for i in range(max_iteration)]
 tau_hist, gradient_hist = pga.inexact_pga(tau_0, approx_gradient, step_size, 
                                       max_iteration = max_iteration, 
                                       epsilons=epsilon_list, verbose = True)
   
-average_tau = ut.cumulative_average(tau_hist)
-average_y = ut.cumulative_average(distribution_history)
+# average_tau = ut.cumulative_average(tau_hist)
+# average_y = ut.cumulative_average(distribution_history)
 
-constraint_violation= []
-check = 0
-for distribution in average_y:
-    check += 1
-    threshold = []
-    for s in range(S):
-        threshold = threshold + [np.sum(distribution[s, :, t]) 
-                                 - constrained_value for t in range(T)]
-    if check < 2:
-        print(threshold)
+# constraint_violation= []
+# check = 0
+# for distribution in average_y:
+#     check += 1
+#     threshold = []
+#     for s in range(S):
+#         threshold = threshold + [np.sum(distribution[s, :, t]) 
+#                                  - constrained_value for t in range(T)]
+#     # if check < 2:
+#     #     print(threshold)
         
-    violation = np.array([v for v in threshold if v > 0])
-    constraint_violation.append(np.linalg.norm(violation, 2))
+#     violation = np.array([v for v in threshold if v > 0])
+#     constraint_violation.append(np.linalg.norm(violation, 2))
 
 
-pt.objective([np.linalg.norm(x, 2) for x in average_tau], 
-             None, 'Incentive convergence')
-plt.ylabel(r"$\|tau^k \|_2$")
-pt.objective(constraint_violation, None, 'Constraint violation')
-plt.ylabel(r"$\|Ay^k - b\|_2$")
+# pt.objective([np.linalg.norm(x, 2) for x in average_tau], 
+#              None, 'Incentive convergence')
+# plt.ylabel(r"$\|tau^k \|_2$")
+# pt.objective(constraint_violation, None, 'Constraint violation')
+# plt.ylabel(r"$\|Ay^k - b\|_2$")
 
 #-----------visualize optimal distribution -----------------
 
 visual.plot_borough_progress(borough, distribution_history[-1], [0, int(T/2), T-1])
 
-# optimal_value = 1
-# pt.objective(obj_history, optimal_value, 'Frank Wolfe')
+constraint_violation= {}
+state_density = {}
+min_density = 999
+max_density = -1
+state_ind = m_neighbors.zone_to_state(m_neighbors.zone_neighbors)
+zone_ind = {y:x for x, y in state_ind.items()}
+for s in range(manhattan_game.States):
+    threshold = [np.sum(distribution_history[-2][s, :, t]) - constrained_value for t in range(T)]
+        
+    violations = [v for v in threshold if v > 0]
+    violation =  sum([v for v in threshold if v > 0]) / T
+    if violation > 0:
+        constraint_violation[zone_ind[s]] = violation
+    
+    state_density_avg = np.sum([distribution_history[-2][s, :, t] for t in range(T)])/T
+    state_density[zone_ind[s]] = state_density_avg
+    min_density = min([state_density_avg, min_density])
+    max_density = max([state_density_avg, max_density])
 
-# density_dict = {}
-# for zone_ind in m_neighbors.zone_neighbors.keys():
-#     density_dict[zone_ind] = np.sum(initial_distribution[state_ind[zone_ind]])
-# time_step = 0
-# state_ind  = m_neighbors.zone_to_state(m_neighbors.zone_neighbors)
-# for zone_ind in m_neighbors.zone_neighbors.keys():
-#     density_dict[zone_ind] = np.sum(y_opt[state_ind[zone_ind], :, time_step])
-# visual.animate_borough(borough, density_dict)
+violation_density = {}
+tolls = {}
+tolled_states = [249, 261, 263]
+for z in tolled_states:  
+    time_density = []
+    state_toll = tau_hist[-1][:, state_ind[z]]
+    for t in range(T):
+        time_density.append(np.sum(distribution_history[-2][state_ind[z], :, t]))
 
-# time_step = int(T/2)
-# for zone_ind in m_neighbors.zone_neighbors.keys():
-#     density_dict[zone_ind] = np.sum(y_opt[state_ind[zone_ind], :, time_step])
-# visual.animate_borough(borough, density_dict)
+    violation_density[z] = time_density
+    tolls[z] = state_toll
+norm = mpl.colors.Normalize(vmin=(min_density), vmax=(max_density))
+color_map = plt.get_cmap('coolwarm')
+bar_colors = []
+for z in tolled_states:
+    R,G,B,A = color_map(norm(state_density[z] + constrained_value))
+    bar_colors.append([R,G,B])   
+bar_labels = ['West Village', 'World Trade Center', 'Yorkville West']  
 
-# time_step = int(T - 1)
-# for zone_ind in m_neighbors.zone_neighbors.keys():
-#     density_dict[zone_ind] = np.sum(y_opt[state_ind[zone_ind], :, time_step])
-# visual.animate_borough(borough, density_dict)
+fig_width = 5.3 * 2
+f = plt.figure(figsize=(fig_width,8))
+seq = [0,2,  1]
+f.add_subplot(2,2,2)
+toll_time_vary = []
+for line in tolls.values(): 
+    toll_time_vary.append(line)
+for line_ind in seq:
+    plt.plot(toll_time_vary[line_ind], linewidth=3, label=bar_labels[line_ind])
+plt.xlabel(r"Time",fontsize=13)
+plt.yscale('log')
+plt.grid()
+plt.legend(fontsize=13)
 
-# for t in range(T):
-#     if np.sum(y_next[:, :, t]) != 10000:
-#         print(f'{t} do not produce 10000 passengers')
+
+f.add_subplot(2, 2, 4)
+plt.plot(250*np.ones(T), linewidth = 6, alpha = 0.5, color=[0,0,0])
+lines = []
+for line in violation_density.values(): 
+    lines.append(line)
+for line_ind in seq:
+    plt.plot(lines[line_ind], linewidth=3, label=bar_labels[line_ind])
+plt.xlabel(r"Time",fontsize=13)
+plt.yscale('log')
+plt.grid()
+plt.legend(fontsize=13)
+
+ax = f.add_subplot(1, 2, 1)
+visual.draw_borough(ax, state_density, borough, 'average', color_map, norm)
+ax.xaxis.set_visible(False)
+ax.yaxis.set_visible(False)
+plt.show()
