@@ -7,7 +7,14 @@ Extract a trip from a CSV row.
 @author: Nico Miguel, Sarah Li
 """
 import datetime
+import models.taxi_dynamics.visualization as visual
 
+Man_zones = [4,  12,  13,  24,  41,  42,  43,  45,  48,  50,  68,  74,  75,
+        79,  87,  88,  90, 100, 103, 104, 105, 107, 113, 114, 116, 120,
+       125, 127, 128, 137, 140, 141, 142, 143, 144, 148, 151, 152, 153,
+       158, 161, 162, 163, 164, 166, 170, 186, 194, 202, 209, 211, 224,
+       229, 230, 231, 232, 233, 234, 236, 237, 238, 239, 243, 244, 246,
+       249, 261, 262, 263]
 
 # Define compare function
 def location_compare(trip_long, trip_lat, area_long, area_lat, bound_long, 
@@ -53,13 +60,16 @@ class Trip:
         
         # Pickup Location retrieval
         self.zone_pu = trip_instance[7]
+        # if self.zone_pu in Man_zones:
+        #     self.pu_latlon = visual.get_zone_locations('Manhattan')[self.zone_pu]
         
         
         # Dropoff Location retrieval
         self.zone_do = trip_instance[8]
+        # if self.zone_do in Man_zones:
+        #     self.do_latlon = visual.get_zone_locations('Manhattan')[self.zone_do]
         
         
         # Cost of ride
         self.fare = trip_instance[-1]
-        
         
