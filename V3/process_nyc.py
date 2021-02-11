@@ -112,8 +112,12 @@ def time_sorted_trips(borough_trip_list, timeA, timeB):
 
 area = 'Manhattan'
 Man_zones = zone_list(area)
+Man_zones.remove(103)
 Man_zones.remove(104)
 Man_zones.remove(105)
+Man_zones.remove(153)
+Man_zones.remove(194)
+Man_zones.remove(202)
 Man_zones = np.asarray(Man_zones)
 Man_trips = borough_trips(nyjan2019_trips, Man_zones)
 Man_trips_rush_hour = time_sorted_trips(Man_trips, 9, 12)

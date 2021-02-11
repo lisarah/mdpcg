@@ -6,6 +6,7 @@ Created on Wed Feb  3 21:31:21 2021
 """
 import models.taxi_dynamics.manhattan_neighbors as manhattan
 import numpy as np
+import pandas as pd
 
 def random_demand_generation(T, S):
     P_pick_up = np.zeros((T,S, S))
@@ -17,6 +18,16 @@ def random_demand_generation(T, S):
             P_pick_up[t, :, s] = destinations / np.sum(destinations)
         
     return P_pick_up, demand_rate
+
+# Input file name and number of time partitions, returns numpy array of arrays
+# Transition kernel: ...\\mdpcg\\V3\\transition_kernel.csv
+# Trip Count matrix: ...\\mdpcg\\V3\\count_kernel.csv
+def extract_kernel(file, time_partitions):
+    kernel_np = pd.to_csv(file, header=0).to_numpy().T
+    kernel_split = np.vsplit(kernel_np, time_partitions)
+    
+    return kernel_split
+    
 
 
 def uniform_initial_distribution(M):
