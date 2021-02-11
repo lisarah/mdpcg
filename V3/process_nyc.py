@@ -295,5 +295,14 @@ for count,_ in enumerate(Man_rush_hour_partitioned):
 np.savetxt('distance_matrix.csv', distance_matrix, delimiter=',')
 np.savetxt('weighted_average.csv', weighted_average_distance, delimiter=',')
 
-""" Still trying to figure out how to save the 3D arrays for the transition matrices into a single file """
+transition_kernel = np.array([matrix[0] for matrix in Man_partitioned_transitions]) # state transition kernel for each timestep
+count_kernel = np.array([matrix[1] for matrix in Man_partitioned_transitions]) # state trip count matrix for each timestep
+
+transition_df = pd.DataFrame(np.hstack(transition_kernel))
+count_df = pd.DataFrame(np.hstack(count_kernel))
+
+transition_df.to_csv('transition_kernel.csv', index = False)
+count_df.to_csv('count_kernel.csv', index = False)
+
+
 
