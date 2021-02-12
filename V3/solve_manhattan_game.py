@@ -30,13 +30,15 @@ x0 = np.zeros((manhattan_game.States, manhattan_game.Actions,
                manhattan_game.Time));   
 y_opt, y_history = fw.FW(x0, initial_distribution, manhattan_game.P, 
                          manhattan_game.evaluate_cost, False, epsilon, 
-                         maxIterations = 2000)
+                         maxIterations = 5000)
 obj_history = [];
 for i in range(len(y_history)):
 	obj_history.append(manhattan_game.evaluate_objective(y_history[i]))
 
 print(f'Last objective value is {obj_history[-1]}')
-# pt.latex_format()
+
+avg_cost = manhattan_game.evaluate_cost(y_opt)
+print(f'Average driver reward is {np.sum(avg_cost)}')
 #-----------visualize optimal distribution ------------------#
 visual.plot_borough_progress(borough, y_opt, [0, int(T/2), T-1])
 

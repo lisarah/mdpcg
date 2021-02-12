@@ -151,7 +151,7 @@ def draw_borough(ax, densities, borough_str, time,
         zone_y.append((shape.bbox[1] + shape.bbox[3]) / 2)
             
     # display borough name  
-    plt.text(np.min(zone_x)+0.025, np.max(zone_y) - 1e-3, f'Manhattan', 
+    plt.text(np.min(zone_x)+0.05, np.max(zone_y) - 1e-3, f'Manhattan', 
               horizontalalignment='center', verticalalignment='center', 
               bbox=dict(facecolor='black', alpha=0.5), 
               color="white", fontsize=18) 

@@ -65,7 +65,7 @@ def FW(x0, p0, P, gradF,
 #            xHistory.append(totalxK/it);
             xHistory.append(1.0*xk);
 #        err = np.linalg.norm(lastGrad - gradient);
-        err = -np.sum(np.multiply(lastGrad,(lastX - xNext)));
+        err = np.sum(np.multiply(lastGrad,(lastX - xNext)));
         # print (f"error is {err}")
         
         it += 1;
