@@ -33,7 +33,7 @@ def inexact_pga(tau_0, approx_gradient, step_size, max_iteration = 1000,
     gradient_hist = []
     t_start = datetime.now()
     for t in range(max_iteration):
-        if verbose and t %5 == 0:
+        if verbose and t %100 == 0:
             t_end = datetime.now()
             t_diff = (t_end - t_start).total_seconds()
             print(f'inexact pga ---- iteration = {t}, time = {t_diff} ----')

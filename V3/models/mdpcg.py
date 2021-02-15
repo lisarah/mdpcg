@@ -26,20 +26,23 @@ class quad_game:
     def manhattan_gen(self, T):
         self.constraint_value= 50
         P_time_vary = m_transition.transition_kernel(T, 0.1)
-        self.P = P_time_vary[0,:,:,:]
+        self.P = P_time_vary
         m_transition.test_transition_kernel(P_time_vary)
         # random rider demand generation
-        S, _, A = self.P.shape
+        _, S, _, A = self.P.shape
         self.States = S
         self.Actions = A
         self.reset_toll()
-        P_pick_up, demand_rate = m_transition.random_demand_generation(T, S)
+        
         # the last action in P is for the action of trying to pick up drivers.
-        self.P[:,:, A - 1] += P_pick_up[0,:,:]
+        P_pick_up = m_transition.extract_kernel('transition_kernel.csv', T, S)
+        for t in range(T): 
+            self.P[t, :,:, A - 1] = P_pick_up[t]
         
         # cost generation
+        demand_rate = m_cost.demand_rate('count_kernel.csv', T, S)
         self.R, self.C = m_cost.congestion_cost(demand_rate, T, S, A, 
-                                                epsilon = 1e-1)
+                                                epsilon = 1e-3)
 
     def seattle_gen(self, Time, strictlyConvex):
         """TODO: move this somewhere else. Seattle MDP and cost generation.
@@ -106,10 +109,19 @@ class quad_game:
                 toll_term += 16 * 6 * constraint_value * toll
 
         return linear_term + 0.5 * quad_term + toll_term
-
+    
+    def evaluate_social_cost(self, y):
+        """Evaluate cost at current population distribution."""
+        # subtract tolls for the seattle game.
+        return (np.multiply(np.multiply(self.R, y), y) + 
+                np.multiply(self.C, y)  +  
+                np.multiply(self.tolls, y))
+    
+    
     def evaluate_cost(self, y):
         """Evaluate cost at current population distribution."""
         # subtract tolls for the seattle game.
         return np.multiply(self.R, y) + self.C  +  self.tolls
     def reset_toll(self):
         self.tolls = np.zeros((self.States,self.Actions,self.Time))
+        

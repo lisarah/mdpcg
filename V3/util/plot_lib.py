@@ -19,9 +19,9 @@ def latex_format():
 
 def objective(hist, optimal_value = None, alg_name='algorithm'):
     """ Plot the objective convergence behaviour against true optimal value."""
-    fig = plt.figure();
     blue = '#1f77b4ff';
     orange = '#ff7f0eff';
+    plt.figure()
     if optimal_value is None:
         plt.plot(np.linspace(1, len(hist),len(hist)), 
                  [abs(x) for x in hist], 
@@ -30,14 +30,14 @@ def objective(hist, optimal_value = None, alg_name='algorithm'):
                  color=blue)
     else:
         plt.plot(np.linspace(1, len(hist),len(hist)), 
-             [abs((x - optimal_value)/optimal_value) for x in hist], 
+             [((x - optimal_value)/optimal_value) for x in hist], 
              linewidth=2, 
              label=f'{alg_name}',
              color=blue)
     plt.legend();
     plt.xlabel(r"Iterations")
     # plt.ylabel(r"$f(y^k)$")
-    plt.yscale("log")
+    # plt.yscale("log")
     plt.xscale('log')
     plt.grid();
     plt.show();

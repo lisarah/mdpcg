@@ -11,28 +11,48 @@ conda install -c conda-forge haversine
 @author: Sarah Li
 """
 import numpy as np
+import pandas as pd
 import models.taxi_dynamics.manhattan_neighbors as manhattan
 import models.taxi_dynamics.visualization as geography
 from haversine import haversine
 
+_km_to_mi = 0.621371 
 
 class congestion_parameters:
     def __init__(self):
-        self.tau = 27.  # $/hr
-        self.vel = 8. # mph
-        self.fuel = 28. # $/gal
-        self.fuelEff = 20. # mi/gal
-        self.rate = 6. # $/mi
-        # cost constant for going somewhere else
-        self.k = self.tau/self.vel + self.fuel/self.fuelEff
+        self.base_rate = 2.55  + 4.2 # $ base rate plus 12 minutes of ride
+        self.rate_mi = 1.75  # $/mi
+        self.tau = 15  # $/hr 
+        self.vel = 12. # mph
+        self.fuel = 2.8 # $/gal
+        self.fuelEff = 28. # mi/gal
+        # cost constant for travelling
+        self.k = self.tau/self.vel + self.fuel/self.fuelEff #  
         
-
-
-def avg_trip_distance(s):
-    """TODO not implemented yet.
-    Return the average distance travelled for trips starting in state s.
+        
+def demand_rate(file, Timesteps, States):
+    """ Extract demand rate per state per time step from file.
+    
+    Args:
+        file: name of file
+        Timesteps: number of time steps.
+        States: number of states.
+    Returns:
+        demand_rate: a 2D list where the [t][s]^th element is the demand at
+          state s and time t.
     """
-    return 10
+    demand_array = pd.read_csv(file, header=0).values
+    demand_rate = []
+    for t in range(Timesteps):
+        demand_rate.append([sum(demand_array[s, t*States:(t+1)*States]) 
+                            for s in range(States)])
+    return demand_rate
+# def avg_trip_distance():
+#     """TODO not implemented yet.
+#     Return the average distance travelled for trips starting in state s.
+#     """
+#     pd.read_csv(file, header=0).values
+#     return 10
        
 def congestion_cost(ride_demand, T ,S, A, epsilon = 0):
     """ Generate the congestion cost vector ell_{tsa}.
@@ -52,11 +72,16 @@ def congestion_cost(ride_demand, T ,S, A, epsilon = 0):
     state_ind  = manhattan.zone_to_state(manhattan.zone_neighbors)
     zone_ind = {z_ind: s_ind for s_ind, z_ind in state_ind.items()}
     zone_geography = geography.get_zone_locations('Manhattan')
+    avg_trip_dist = pd.read_csv('weighted_average.csv', header=None).values
     for t in range(T):
         for s in range(S):
             a = A - 1  # picking up riders
-            C[s, a, t] = (params.k - params.rate) * avg_trip_distance(s) 
-            R[s, a, t] = params.tau / ride_demand[s]
+            m_pick_up = (params.base_rate + params.rate_mi * 
+                         avg_trip_dist[t][s] * _km_to_mi ) 
+            m_pick_up = max([7, m_pick_up])
+            C[s, a, t] =  (-m_pick_up  + 
+                           params.k * avg_trip_dist[t][s] * _km_to_mi)
+            R[s, a, t] = m_pick_up / (3 * ride_demand[t][s] / 31)
             neighbors = manhattan.STATE_NEIGHBORS[s]
             N_neighbors = len(neighbors)
             for a in range(A - 1): # going to neighbor
@@ -68,7 +93,8 @@ def congestion_cost(ride_demand, T ,S, A, epsilon = 0):
                 n_latlon = zone_geography[zone_ind[neighbor]]
                 # haversine returns distance between two lat-lon tuples in km.
                 # 0.621371 converts km to mi.
-                C[s, a, t] = params.k*haversine(s_latlon, n_latlon)*0.621371 
+                C[s, a, t] = (params.k * haversine(s_latlon, n_latlon) * 
+                              _km_to_mi) 
                 R[s, a, t] = epsilon # indedpendent of distance
                  
     return R, C

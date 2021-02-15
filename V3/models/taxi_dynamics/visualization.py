@@ -151,7 +151,7 @@ def draw_borough(ax, densities, borough_str, time,
         zone_y.append((shape.bbox[1] + shape.bbox[3]) / 2)
             
     # display borough name  
-    plt.text(np.min(zone_x)+0.05, np.max(zone_y) - 1e-3, f'Manhattan', 
+    plt.text(np.min(zone_x)+0.05, np.max(zone_y) - 1e-3, borough_str, 
               horizontalalignment='center', verticalalignment='center', 
               bbox=dict(facecolor='black', alpha=0.5), 
               color="white", fontsize=18) 
@@ -178,7 +178,6 @@ def animate_borough(borough_str, densities):
 def plot_borough_progress(borough_str, plot_density, times):
    
     subplot_num = len(times)
-    
     state_ind  = m_neighbors.zone_to_state(m_neighbors.zone_neighbors)
     density_dicts = []
     min_density = 999999
@@ -188,6 +187,7 @@ def plot_borough_progress(borough_str, plot_density, times):
         for zone_ind in m_neighbors.zone_neighbors.keys():
             density_dicts[-1][zone_ind] = np.sum(
                 plot_density[state_ind[zone_ind], :, times[plot_ind]])
+
             min_density = min(list(density_dicts[-1].values()) + [min_density])
             max_density = max(list(density_dicts[-1].values()) + [max_density])
        

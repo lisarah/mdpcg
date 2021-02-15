@@ -26,12 +26,16 @@ def random_demand_generation(T, S):
 # Transition kernel: ...\\mdpcg\\V3\\transition_kernel.csv
 # Trip Count matrix: ...\\mdpcg\\V3\\count_kernel.csv
 def extract_kernel(file, Timesteps, States):
-    """ Extract transition kernel from file.
+    """ Extract transition kernel per time step from file.
     
     Args:
         file: name of file
         Timesteps: number of time steps.
         States: number of states.
+    Returns:
+        kernel_list: a list of Timesteps length, each element is an array
+          with (States, States) shape, where the [i,j]th component is the
+          probability of transitioning from state i to state j.
     """
     kernel_array = pd.read_csv(file, header=0).values
     kernel_list = [kernel_array[:, t*States: (t+1) * (States)].T 

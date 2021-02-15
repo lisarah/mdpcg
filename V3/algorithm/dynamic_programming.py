@@ -33,7 +33,7 @@ def value_iteration(cost, p0, P, isMax = False):
 
     # construct optimal value function and policy
     for tIter in range(T):
-        t = T-1-tIter;   
+        t = T-1-tIter # true time since we are backward propagating.
         cCurrent =cost[:,:,t]; 
         if t == T-1:       
             if isMax:
@@ -45,7 +45,7 @@ def value_iteration(cost, p0, P, isMax = False):
         else:
             # solve the Bellman operator
             Vt = V[:,t+1];
-            obj = cCurrent + np.einsum('ijk,i',P,Vt);
+            obj = cCurrent + np.einsum('ijk,i',P[t,:,:,:],Vt);
             if isMax:
                 V[:,t] = np.max(obj, axis=1);
                 policy[:,t] = np.argmax(obj, axis=1);
@@ -66,6 +66,6 @@ def value_iteration(cost, p0, P, isMax = False):
         for s in range(S):
             x[s,int(pol[s])] = 1* traj[s];
         xNext[:,:,t] = 1.0*x;
-        trajectory[:,t] =  np.einsum('ijk,jk',P,x);
+        trajectory[:,t] =  np.einsum('ijk,jk',P[t,:,:,:],x);
 
     return V, xNext; 

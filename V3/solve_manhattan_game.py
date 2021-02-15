@@ -16,9 +16,9 @@ import matplotlib as mpl
 import models.taxi_dynamics.manhattan_neighbors as m_neighbors
 
 T = 15
-epsilon = 1e-1
+epsilon = 2e3
 borough = 'Manhattan'
-constrained_value = 250
+constrained_value = 400
 manhattan_game = mdpcg.quad_game(T, manhattan=True)
 initial_distribution = m_dynamics.uniform_initial_distribution(10000)
 #----- CVX version ------ currently isn't running
@@ -30,18 +30,18 @@ x0 = np.zeros((manhattan_game.States, manhattan_game.Actions,
                manhattan_game.Time));   
 y_opt, y_history = fw.FW(x0, initial_distribution, manhattan_game.P, 
                          manhattan_game.evaluate_cost, False, epsilon, 
-                         maxIterations = 5000)
+                         maxIterations = 1e6)
 obj_history = [];
 for i in range(len(y_history)):
-	obj_history.append(manhattan_game.evaluate_objective(y_history[i]))
+	obj_history.append(abs(manhattan_game.evaluate_objective(y_history[i])))
 
 print(f'Last objective value is {obj_history[-1]}')
 
 avg_cost = manhattan_game.evaluate_cost(y_opt)
-print(f'Average driver reward is {np.sum(avg_cost)}')
+print(f'Social cost for drivers is {np.sum(avg_cost)}')
 #-----------visualize optimal distribution ------------------#
-visual.plot_borough_progress(borough, y_opt, [0, int(T/2), T-1])
-
+# visual.plot_borough_progress(borough, y_opt, [0, int(T/2), T-1])
+obj_history.pop(0)
 pt.objective(obj_history, None, 'Frank Wolfe')
 
 constraint_violation= {}
@@ -61,7 +61,8 @@ for s in range(manhattan_game.States):
     density_dict[zone_ind[s]] = np.sum([y_opt[s, :, t] for t in range(T)])/T
     min_density = min(list(density_dict.values()) + [min_density])
     max_density = max(list(density_dict.values()) + [max_density])
-
+print(f'minimum density = {min_density}')
+print(f'maximum density = {max_density}')
 violation_density = {}
 for z in constraint_violation.keys():  
     time_density = []
@@ -75,11 +76,19 @@ bar_colors = []
 for violation in constraint_violation.values():
     R,G,B,A = color_map(norm(violation + constrained_value))
     bar_colors.append([R,G,B])   
-bar_labels = ['West Village', 'World Trade Center', 'Yorkville West']  
-  
+bar_labels = []  
+for zone_ind in constraint_violation.keys():
+    found = False
+    for zone_name, ind in m_neighbors.ZONE_IND.items():
+        if found:
+            break
+        if ind == zone_ind:
+            bar_labels.append(zone_name)
+            found = True
+            
 fig_width = 5.3 * 2
 f = plt.figure(figsize=(fig_width,8))
-ax_bar = f.add_subplot(2,2,2)
+ax_bar = f.add_subplot(2,2,1)
 bar_range = np.arange(1, len(constraint_violation) + 1, 1)
 seq = [0,2,  1]
 violations = []
@@ -88,27 +97,29 @@ for v in constraint_violation.values():
 loc_ind = 0
 for bar_ind in seq:
     plt.bar(loc_ind, violations[bar_ind] + constrained_value, 
-            width = 0.8, color=bar_colors[bar_ind], 
+            width = 0.8,  #color=bar_colors[bar_ind], 
             label=bar_labels[bar_ind])
     loc_ind +=1
-plt.ylim(250, 250 +1.1*max(constraint_violation.values()))
+plt.ylim(constrained_value,
+         constrained_value + 1.1*max(constraint_violation.values()))
 ax_bar.xaxis.set_visible(False)
 plt.legend(fontsize=13)
 
 
-f.add_subplot(2, 2, 4)
-plt.plot(250*np.ones(T), linewidth = 6, alpha = 0.5, color=[0,0,0])
+f.add_subplot(2, 2, 3)
+plt.plot(constrained_value * np.ones(T), 
+         linewidth = 6, alpha = 0.5, color=[0,0,0])
 lines = []
 for line in violation_density.values(): 
     lines.append(line)
 for line_ind in seq:
-    plt.plot(lines[line_ind], linewidth=3, 
-             color=bar_colors[line_ind], label=bar_labels[line_ind])
+    plt.plot(lines[line_ind], linewidth=3, # color=bar_colors[line_ind], 
+             label=bar_labels[line_ind])
 plt.xlabel(r"Time",fontsize=13)
 plt.grid()
 plt.legend(fontsize=13)
 
-ax = f.add_subplot(1, 2, 1)
+ax = f.add_subplot(1,2,2)
 visual.draw_borough(ax, density_dict, borough, 'average', color_map, norm)
 ax.xaxis.set_visible(False)
 ax.yaxis.set_visible(False)

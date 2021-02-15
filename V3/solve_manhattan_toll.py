@@ -20,11 +20,11 @@ import matplotlib as mpl
 
 T = 15 # number of time steps of MDP
 epsilon = 10000 # error in approximate solution of drivers learning
-epsilon_list = [1e5, 1e4, 1e3, 1e2, 1e1]
+epsilon_list = [2e3]  # [1e5, 2e4, 2e3, 1e3]
 borough = 'Manhattan' # borough of interest
 fleet_size = 10000 # game population size
-constrained_value = 250 # maximum driver density per state
-max_iteration = 500 # number of iterations of dual ascent
+constrained_value = 400 # maximum driver density per state
+max_iteration = 2000 # number of iterations of dual ascent
 
 # game definition with initial distribution
 manhattan_game = mdpcg.quad_game(T, manhattan=True)
@@ -44,7 +44,7 @@ alpha = np.min(manhattan_game.R)
 print(f'convexity factor is {alpha}')
 
 two_norm_A = np.linalg.norm(A_array,2)
-# step_size = 0.05
+step_size = 0.001
 step_size = alpha/2/(two_norm_A**2)
 print(f'norm of A is {two_norm_A}, step size is {step_size}')
 
@@ -77,6 +77,7 @@ for epsilon in epsilon_list:
     
         return np.asarray(gradient)
     
+    # tau_0 = 50*np.ones((T,S))
     tau_0 = np.zeros((T,S))
     epsilons = [epsilon for i in range(max_iteration)]
     tau_hist, gradient_hist = pga.inexact_pga(tau_0, approx_gradient, 
@@ -104,23 +105,52 @@ for ind in range(Iterations):
                                      for t in range(T)]    
         violation = np.array([v for v in threshold if v > 0])
         constraint_violation[-1].append(np.linalg.norm(violation, 2))
-
+#--------------epsilon vs toll and constraint violation-------------#
 iteration_line = np.linspace(1, len(average_y[-1]),len(average_y[-1]))
+fig_width = 5.3 * 2
+epsilon_plot = plt.figure(figsize=(fig_width,8))
+toll_plot = epsilon_plot.add_subplot(2,1,1)
+plt.plot(epsilon_list, [toll_values[ind][-1] for ind in range(Iterations)], 
+         linewidth=3)
+plt.grid()
+plt.xscale('log')
+plt.yscale('log')
+plt.setp(toll_plot.get_xticklabels(), visible=False)
+epsilon_plot.add_subplot(2, 1, 2, sharex =toll_plot )
+plt.plot(epsilon_list, [constraint_violation[ind][-1] for ind in range(Iterations)], 
+         linewidth=3)
+plt.xscale('log')
+plt.xlabel('$\epsilon$',fontsize=12)
+plt.yscale('log')
+plt.grid()
+plt.subplots_adjust(hspace=.0)
+
 plt.figure()
-#-----------average tolling values for each approximation ------------
-for ind in range(Iterations):
-    plt.plot(iteration_line, toll_values[ind], linewidth=2, 
-             label=f'epsilon = {epsilon_list[ind]}')
-plt.legend()
-plt.xlabel('Iterations')
+print('fig 1 = toll norm as function of designer iteration')
+plt.plot(epsilon_list, [toll_values[ind][-1] for ind in range(Iterations)], 
+         linewidth=3)
+plt.xscale('log')
+plt.xlabel('$\epsilon$',fontsize=12)
 plt.yscale('log')
 plt.grid()
 
 plt.figure()
-#-----------total constraint violation for each approximation ------------
-for ind in range(Iterations):
-    plt.plot(iteration_line, constraint_violation[ind], linewidth=2, 
-              label=f'epsilon = {epsilon_list[ind]}')
+print('fig 2 = constraint_violation as function of designer iteration')
+plt.plot(epsilon_list, [constraint_violation[ind][-1] for ind in range(Iterations)], 
+         linewidth=3)
+plt.xscale('log')
+plt.xlabel('$\epsilon$',fontsize=12)
+plt.yscale('log')
+plt.grid()
+
+
+#-----------average tolling values for last approximation ------------
+plt.figure()
+print('fig 3 = toll norm as function of designer iteration')
+plt.plot(iteration_line, toll_values[-1], linewidth=3, 
+          label='total toll value')
+plt.plot(iteration_line, constraint_violation[-1],
+         label = 'total constraint violation ', linewidth=3)
 plt.legend()
 plt.xlabel('Iterations')
 plt.yscale('log')
@@ -131,19 +161,24 @@ expected_mdp_cost = []
 toll_received = []
 for ind in range(len(average_y[-1])):
     # calculate each iteration's driver reward
-    cur_cost = manhattan_game.evaluate_cost(average_y[-1][ind])
-    expected_mdp_cost.append(np.sum(cur_cost)) # negative cost = reward   
+    cur_cost = manhattan_game.evaluate_social_cost(average_y[-1][ind])
+    expected_mdp_cost.append(-np.sum(cur_cost)) # negative cost = reward   
     # calculate the total toll received by system
     state_time_density = np.sum(average_y[-1][ind], axis=1)
     toll_received.append(np.sum(
         np.multiply(state_time_density, average_tau[-1][ind].T)))
     # print(np.sum(cur_cost))
+print('fig 3 = Total profit from toll as function of designer iteration')
+fig = plt.figure();
 pt.objective(toll_received, None, 'Total toll profit')
-pt.objective(expected_mdp_cost, None, 'Optimal reward for driver')  
+
+print('fig 4 = Average driver profit as function of designer iteration')
+pt.objective(expected_mdp_cost, expected_mdp_cost[0], 'Social Cost for driver')  
+
 avg_cost = 10000 # average cost of the game
 
 #-----------visualize optimal distribution -----------------
-visual.plot_borough_progress(borough, average_y[-1][-1], [0, int(T/2), T-1])
+# visual.plot_borough_progress(borough, average_y[-1][-1], [0, int(T/2), T-1])
 
 state_density = {}
 state_ind = m_neighbors.zone_to_state(m_neighbors.zone_neighbors)
@@ -157,13 +192,15 @@ for s in range(manhattan_game.States):
     state_density[zone_ind[s]] = state_density_avg
     
 # calculate color bars
-norm = mpl.colors.Normalize(vmin=min(state_density.values()), 
-                            vmax= max(state_density.values()))
+min_density = 26.392308291054466
+max_density = 417.1387978157465
+norm = mpl.colors.Normalize(vmin=min_density, vmax= max_density)
 color_map = plt.get_cmap('coolwarm')
-bar_labels = ['West Village', 'World Trade Center', 'Yorkville West'] 
+bar_labels = ['Financial District North', 'Midtown Center', 'World Trade Center']  
+# bar_labels = ["Midtown Center", 'Upper East Side N', 'Upper East Side S']
 bar_colors = []
 
-tolled_states = [249, 261, 263]
+tolled_states =  [87, 161, 261] # [161, 236, 237]#
 for z in tolled_states:
     R,G,B,A = color_map(norm(state_density[z] + constrained_value))
     bar_colors.append([R,G,B])   
@@ -190,11 +227,10 @@ for line_ind in seq:
     ax_toll_val.plot(toll_time_vary[line_ind], linewidth=3, 
                      label=bar_labels[line_ind])
 plt.setp(ax_toll_val.get_xticklabels(), visible=False)
-plt.yscale('log')
 plt.grid()
 
 ax_constrained_density = f.add_subplot(2,2,3,sharex=ax_toll_val) # (2, 2, 4)
-plt.plot(250*np.ones(T), linewidth = 6, alpha = 0.3, color=[0,0,0])
+plt.plot(constrained_value*np.ones(T), linewidth = 6, alpha = 0.3, color=[0,0,0])
 lines = []
 for line in violation_density.values(): 
     lines.append(line)
@@ -202,7 +238,7 @@ for line_ind in seq:
     ax_constrained_density.plot(lines[line_ind], linewidth=3, 
                                 label=bar_labels[line_ind])
 plt.xlabel(r"Time",fontsize=13)
-plt.yscale('log')
+
 plt.grid()
 plt.legend(fontsize=13)
 

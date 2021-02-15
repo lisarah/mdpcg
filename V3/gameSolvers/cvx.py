@@ -102,7 +102,8 @@ class cvx_solver(mdpcg.quad_game):
         for i in range(states):
             for t in range(time-1):  
                 # mass conservation constraints between timesteps
-                prevProb = sum([sum([self.y_ijt[(iLast,j,t)]*self.P[i,iLast,j] 
+                prevProb = sum([sum([
+                    self.y_ijt[(iLast,j,t)] * self.P[t,i,iLast,j] 
                                 for iLast in range(states) ]) 
                            for j in range(actions)]) 
                 newProb = sum([self.y_ijt[(i,j,t+1)] 
