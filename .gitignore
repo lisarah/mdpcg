@@ -1,7 +1,10 @@
 temp.py
 testFile.py
+*yellow_tripdata_*
 */__pycache__/*
+*/ipynb_checkpoints/*
 __pycache__
 *html
 *npy
 *.pyc
+*.zip

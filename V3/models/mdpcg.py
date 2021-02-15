@@ -11,6 +11,11 @@ import util.figureGeneration as fg
 import networkx as nx
 import numpy as np
 import cvxpy as cvx
+import pandas as pd
+
+
+data_dir = "C:\\Users\\craba\\Desktop\\code\\mdpcg\\V3\\models\\taxi_dynamics\\"
+
 class quad_game:
 #--------------constructor-------------------------------
     def __init__(self, Time, manhattan = False, strictlyConvex = True):
@@ -35,14 +40,19 @@ class quad_game:
         self.reset_toll()
         
         # the last action in P is for the action of trying to pick up drivers.
-        P_pick_up = m_transition.extract_kernel('transition_kernel.csv', T, S)
+        P_pick_up = m_transition.extract_kernel(
+            data_dir + 'transition_kernel_jan.csv', T, S)
         for t in range(T): 
             self.P[t, :,:, A - 1] = P_pick_up[t]
         
         # cost generation
-        demand_rate = m_cost.demand_rate('count_kernel.csv', T, S)
-        self.R, self.C = m_cost.congestion_cost(demand_rate, T, S, A, 
-                                                epsilon = 1e-3)
+        demand_rate = m_cost.demand_rate(
+            data_dir + 'count_kernel_jan.csv', T, S)
+        avg_trip_dist = pd.read_csv(
+            data_dir + 'weighted_average_jan.csv', header=None).values
+    
+        self.R, self.C = m_cost.congestion_cost(
+            demand_rate, T, S, A, avg_trip_dist, epsilon = 1e-3)
 
     def seattle_gen(self, Time, strictlyConvex):
         """TODO: move this somewhere else. Seattle MDP and cost generation.

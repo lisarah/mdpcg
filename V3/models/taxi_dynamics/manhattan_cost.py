@@ -11,10 +11,10 @@ conda install -c conda-forge haversine
 @author: Sarah Li
 """
 import numpy as np
-import pandas as pd
 import models.taxi_dynamics.manhattan_neighbors as manhattan
 import models.taxi_dynamics.visualization as geography
 from haversine import haversine
+import pandas as pd
 
 _km_to_mi = 0.621371 
 
@@ -54,14 +54,16 @@ def demand_rate(file, Timesteps, States):
 #     pd.read_csv(file, header=0).values
 #     return 10
        
-def congestion_cost(ride_demand, T ,S, A, epsilon = 0):
+def congestion_cost(ride_demand, T ,S, A, avg_trip_dist, epsilon = 0):
     """ Generate the congestion cost vector ell_{tsa}.
     Each ell_{tsa} = R_{tsa} y_{tsa} + C_{tsa}
     
     Input:
         rider_demand: a list of length S with the rider demand in each state
         T: total time steps
-        S; total number of states
+        S: total number of states
+        A: number of actions
+        avg_trip_dist: a list of average trip distance, indexed by state ind.
     Output:
         R: linear part of ell
         C: constant part of ell
@@ -72,7 +74,6 @@ def congestion_cost(ride_demand, T ,S, A, epsilon = 0):
     state_ind  = manhattan.zone_to_state(manhattan.zone_neighbors)
     zone_ind = {z_ind: s_ind for s_ind, z_ind in state_ind.items()}
     zone_geography = geography.get_zone_locations('Manhattan')
-    avg_trip_dist = pd.read_csv('weighted_average.csv', header=None).values
     for t in range(T):
         for s in range(S):
             a = A - 1  # picking up riders
