@@ -6,9 +6,9 @@ Process New York City Uber driver data.
 
 @author: Nico Miguel, Sarah Li
 
-Trips in this file are from New York, January 2019. 2020 data was avoided for now due to the global pandemic disrupting normal trip operations.
+Trips in this file are from New York, December 2019. 2020 data was avoided for now due to the global pandemic disrupting normal trip operations.
 
-Example analysis was carried out using trips originating in Staten Island. borough
+Analysis was carried out using trips in Manhattan
 
 USAGE:
     There are four functions that drive the data analysis.
@@ -48,8 +48,8 @@ from haversine import haversine
 import csv
 #%% DATA %%#
 # Import trip data into numpy array
-data_file_name = "D:\\Behcet\\GameTheory\\NewYorkUber\\yellow_tripdata_2019-01.csv"
-new_york_jan_2019 = pd.read_csv(data_file_name, header = 0).to_numpy()
+data_file_name = "D:\\Behcet\\GameTheory\\NewYorkUber\\yellow_tripdata_2019-12.csv"
+new_york_dec_2019 = pd.read_csv(data_file_name, header = 0).to_numpy()
 
 # Import taxi zone lookup table
 taxi_zone_file = "D:\\Behcet\\GameTheory\\NewYorkUber\\taxi+_zone_lookup.csv"
@@ -70,11 +70,11 @@ def zone_list(borough_name):
 
 #%% TRIPS %%#
 # Create list of trip objects
-nyjan2019_trips = []
+nydec2019_trips = []
 
 
-for i in range(new_york_jan_2019.shape[0]):
-    nyjan2019_trips.append(trip.Trip(new_york_jan_2019[i]))
+for i in range(new_york_dec_2019.shape[0]):
+    nydec2019_trips.append(trip.Trip(new_york_dec_2019[i]))
 
 #%% TRIP SORTING %%#
 # Define borough trip sorting function
@@ -119,7 +119,7 @@ Man_zones.remove(153)
 Man_zones.remove(194)
 Man_zones.remove(202)
 Man_zones = np.asarray(Man_zones)
-Man_trips = borough_trips(nyjan2019_trips, Man_zones)
+Man_trips = borough_trips(nydec2019_trips, Man_zones)
 Man_trips_rush_hour = time_sorted_trips(Man_trips, 9, 12)
 
 #%% TAU CALCULATION %%#
@@ -275,7 +275,7 @@ distance_matrix = np.zeros([len(Man_zones)-1,len(Man_zones)-1])
 for i in range(len(Man_zones)-1):
     for j in range(len(Man_zones)-1):
         if i == j:
-            distance_matrix[i,j] = 9.656 # trips occurring in only one zone are 6 miles
+            distance_matrix[i,j] = 1.609 # trips occurring in only one zone are 6 miles
         else:
             zone_i_latlon = visual.get_zone_locations('Manhattan')[Man_zones[i]]
             zone_j_latlon = visual.get_zone_locations('Manhattan')[Man_zones[j]]
@@ -296,8 +296,8 @@ for count,_ in enumerate(Man_rush_hour_partitioned):
     
 #%% Write to CSV file %%#
 
-np.savetxt('distance_matrix.csv', distance_matrix, delimiter=',')
-np.savetxt('weighted_average.csv', weighted_average_distance, delimiter=',')
+np.savetxt('distance_matrix_dec.csv', distance_matrix, delimiter=',')
+np.savetxt('weighted_average_dec.csv', weighted_average_distance, delimiter=',')
 
 transition_kernel = np.array([matrix[0] for matrix in Man_partitioned_transitions]) # state transition kernel for each timestep
 count_kernel = np.array([matrix[1] for matrix in Man_partitioned_transitions]) # state trip count matrix for each timestep
@@ -305,8 +305,8 @@ count_kernel = np.array([matrix[1] for matrix in Man_partitioned_transitions]) #
 transition_df = pd.DataFrame(np.hstack(transition_kernel))
 count_df = pd.DataFrame(np.hstack(count_kernel))
 
-transition_df.to_csv('transition_kernel.csv', index = False)
-count_df.to_csv('count_kernel.csv', index = False)
+transition_df.to_csv('transition_kernel_dec.csv', index = False)
+count_df.to_csv('count_kernel_dec.csv', index = False)
 
 
 

@@ -7,7 +7,11 @@ Extract a trip from a CSV row.
 @author: Nico Miguel, Sarah Li
 """
 import datetime
+
+#%% memes %%#
+
 import models.taxi_dynamics.visualization as visual
+
 
 Man_zones = [4,  12,  13,  24,  41,  42,  43,  45,  48,  50,  68,  74,  75,
         79,  87,  88,  90, 100, 103, 104, 105, 107, 113, 114, 116, 120,
@@ -29,20 +33,20 @@ class Trip:
     def __init__(self, trip_instance):
         # Pickup Date retrieval
         pudate_ = trip_instance[1].split(" ")[0]
-        self.pudate = datetime.datetime.strptime(pudate_, '%Y-%m-%d')
+        self.pudate = datetime.datetime.strptime(pudate_, '%m/%d/%Y')
         
         # Dropoff Date retrieval
         dodate_ = trip_instance[2].split(" ")[0]
-        self.dodate = datetime.datetime.strptime(dodate_, '%Y-%m-%d')
+        self.dodate = datetime.datetime.strptime(dodate_, '%m/%d/%Y')
         
         # Pickup Time retrieval
         putime_ = trip_instance[1].split(" ")[1]
         putime = putime_.split(":")
         pu_hours_ = int(putime[0])
         pu_minutes_ = int(putime[1])
-        pu_seconds_ = int(putime[2])
+    
         elapsed_pu = datetime.timedelta(hours = pu_hours_, minutes = pu_minutes_, 
-                                     seconds = pu_seconds_)
+                                     seconds = 0)
         self.putime = elapsed_pu.seconds/3600 # Time in hours since beginning of day
                 
         # Dropoff Time retrieval
@@ -50,9 +54,9 @@ class Trip:
         dotime = dotime_.split(":")
         do_hours_ = int(dotime[0])
         do_minutes_ = int(dotime[1])
-        do_seconds_ = int(dotime[2])
+        
         elapsed_do = datetime.timedelta(hours = do_hours_, minutes = do_minutes_, 
-                                     seconds = do_seconds_)
+                                     seconds = 0)
         self.dotime = elapsed_do.seconds/3600 # Time in hours since beginning of day
         
         # Elapsed Trip Time
@@ -71,5 +75,5 @@ class Trip:
         
         
         # Cost of ride
-        self.fare = trip_instance[-1]
+        self.fare = trip_instance[10]
         
