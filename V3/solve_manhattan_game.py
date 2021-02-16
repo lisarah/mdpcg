@@ -77,12 +77,12 @@ for violation in constraint_violation.values():
     R,G,B,A = color_map(norm(violation + constrained_value))
     bar_colors.append([R,G,B])   
 bar_labels = []  
-for zone_ind in constraint_violation.keys():
+for z in constraint_violation.keys():
     found = False
     for zone_name, ind in m_neighbors.ZONE_IND.items():
         if found:
             break
-        if ind == zone_ind:
+        if ind == z:
             bar_labels.append(zone_name)
             found = True
             
@@ -96,18 +96,17 @@ for v in constraint_violation.values():
     violations.append(v)
 loc_ind = 0
 for bar_ind in seq:
-    plt.bar(loc_ind, violations[bar_ind] + constrained_value, 
+    ax_bar.bar(loc_ind, violations[bar_ind] + constrained_value, 
             width = 0.8,  #color=bar_colors[bar_ind], 
             label=bar_labels[bar_ind])
     loc_ind +=1
-plt.ylim(constrained_value,
-         constrained_value + 1.1*max(constraint_violation.values()))
+ax_bar.set_ylim([constrained_value,constrained_value + 50])
 ax_bar.xaxis.set_visible(False)
 plt.legend(fontsize=13)
 
 
-f.add_subplot(2, 2, 3)
-plt.plot(constrained_value * np.ones(T), 
+ax_time = f.add_subplot(2, 2, 3)
+ax_time.plot(constrained_value * np.ones(T), 
          linewidth = 6, alpha = 0.5, color=[0,0,0])
 lines = []
 for line in violation_density.values(): 
@@ -119,8 +118,15 @@ plt.xlabel(r"Time",fontsize=13)
 plt.grid()
 plt.legend(fontsize=13)
 
-ax = f.add_subplot(1,2,2)
-visual.draw_borough(ax, density_dict, borough, 'average', color_map, norm)
-ax.xaxis.set_visible(False)
-ax.yaxis.set_visible(False)
+ax_map = f.add_subplot(1,2,2)
+visual.draw_borough(ax_map, density_dict, borough, 'average', color_map, norm)
+ax_map.xaxis.set_visible(False)
+ax_map.yaxis.set_visible(False)
 plt.show()
+
+density_t = {}
+for s in range(manhattan_game.States):
+    density_t[zone_ind[s]] = [sum(y_opt[s,:,t]) for t in range(T) ]
+violation_states = list(constraint_violation.keys())
+visual.animate_combo('density_unconstrained.mp4', violation_states, density_t, 
+                     bar_labels, T, borough, color_map, norm)

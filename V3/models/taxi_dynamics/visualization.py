@@ -15,6 +15,8 @@ from shapely.geometry import Polygon
 from descartes.patch import PolygonPatch
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from matplotlib.animation import ImageMagickWriter
 import numpy as np
 import pandas as pd
 import models.taxi_dynamics.manhattan_neighbors as m_neighbors
@@ -88,10 +90,11 @@ def draw_shape(ax, shape, color):
         shape: shapefile Shape object.
     """
     nparts = len(shape.parts) # total parts
+    patch_list = []
     if nparts == 1:
         polygon = Polygon(shape.points)
         patch = PolygonPatch(polygon, facecolor=color, alpha=1.0, zorder=2)
-        ax.add_patch(patch)
+        patch_list.append(ax.add_patch(patch))
     else: # loop over parts of each shape, plot separately
         for ip in range(nparts): # loop over parts, plot separately
             i0 = shape.parts[ip]
@@ -102,8 +105,15 @@ def draw_shape(ax, shape, color):
 
             polygon = Polygon(shape.points[i0:i1+1])
             patch = PolygonPatch(polygon, facecolor=color, alpha=1.0, zorder=2)
-            ax.add_patch(patch)
+            patch_list.append(ax.add_patch(patch))
+    return patch_list
 
+def update_borough(t, patch_dict, densities, color_map, norm):
+    for zone_ind, patches in patch_dict.items():
+        R,G,B,A = color_map(norm((densities[zone_ind][t])))
+        color = [R,G,B]    
+        for patch in patches:
+            patch.set_facecolor(color)
             
 def draw_borough(ax, densities, borough_str, time,
                  color_map, norm):
@@ -122,6 +132,7 @@ def draw_borough(ax, densities, borough_str, time,
     ax.set_facecolor(ocean_color)
     zone_x = []
     zone_y = []
+    patch_dict = {}
     # colorbar
     if norm == None:
         norm = mpl.colors.Normalize(vmin=min(densities.values()), 
@@ -145,10 +156,11 @@ def draw_borough(ax, densities, borough_str, time,
             
         R,G,B,A = color_map(norm((densities[zone_ind])))
         color = [R,G,B]              
-        draw_shape(ax, shape, color)
-
+        patch_list = draw_shape(ax, shape, color)
         zone_x.append((shape.bbox[0] + shape.bbox[2]) / 2)
         zone_y.append((shape.bbox[1] + shape.bbox[3]) / 2)
+        
+        patch_dict[zone_ind] = patch_list
             
     # display borough name  
     plt.text(np.min(zone_x)+0.05, np.max(zone_y) - 1e-3, borough_str, 
@@ -163,20 +175,68 @@ def draw_borough(ax, densities, borough_str, time,
     cbar = plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=color_map), ax=ax)
     cbar.ax.tick_params(labelsize=13) 
     # plt.grid()
- 
-def animate_borough(borough_str, densities):
-    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(5.2,8))
-    ax = plt.subplot(1, 1, 1)
-    # ax.set_title(f"NYC {borough_str}")
-    
-    draw_borough(ax, _shape_file, densities, _shape_fields, borough_str, 0)
-    # ax = plt.subplot(1, 2, 2)
-    # ax.set_title("Zones in NYC")
-    # draw_zone_map(ax, sf)
-    plt.show()
+    return patch_dict
 
+def set_axis_limits(ax_bar, ax_time, T, is_toll):
+    if not is_toll:
+        ax_bar.set_ylim([0, 450])
+    else:
+        ax_bar.set_ylim([0, 0.15]) # when drawing tolling value        
+        ax_bar.set_xlim([0, T-1])
+
+    ax_bar.xaxis.set_visible(False)           
+    ax_time.set_xlim([0, T-1])
+    ax_time.set_ylim([0, 550])
+    ax_time.set_xlabel(r"Time",fontsize=13)
+    ax_time.grid(True)
+    ax_bar.grid(True)
+
+def animate_combo(file_name, violation_states, 
+                  density_dict, 
+                  bar_labels, 
+                  T, 
+                  borough_str, 
+                  color_map, norm, toll_val = None):
+    fig_width = 5.3 * 2
+    f = plt.figure(figsize=(fig_width,8))
+    ax_bar = f.add_subplot(2, 2, 1)
+    ax_time = f.add_subplot(2, 2, 3)
+    ax_map = f.add_subplot(1, 2, 2)
+    ax_map.xaxis.set_visible(False)
+    ax_map.yaxis.set_visible(False)
+    set_axis_limits(ax_bar, ax_time, T, toll_val is not None)
+    
+    avg_density = {}
+    for ind in density_dict.keys():
+        avg_density[ind] = density_dict[ind][0]
+    patch_dict = draw_borough(ax_map, avg_density, borough_str, 'average', 
+                              color_map, norm)      
+    plt.show()
+    def animate(i):
+        ax_bar.clear()
+        ax_time.clear()
+        loc_ind = 0
+        time_step = i % T 
+        set_axis_limits(ax_bar, ax_time, T, toll_val is not None)
+        for violation in violation_states:
+            bar_val = sum(density_dict[violation][:time_step+1])/(time_step + 1)
+            if toll_val is not None:
+                ax_bar.plot(toll_val[loc_ind][:time_step+1], linewidth=3)
+            else:   
+                ax_bar.bar(loc_ind, bar_val, width = 0.8, 
+                           label=bar_labels[loc_ind])
+            ax_time.plot(density_dict[violation][:time_step+1],linewidth=3, 
+                         label=bar_labels[loc_ind])
+            loc_ind +=1
+        ax_time.legend(loc='lower right', fontsize=13)
+        update_borough(time_step, patch_dict, density_dict, color_map, norm)
+  
+    ani = animation.FuncAnimation(f, animate, frames=range(T), interval=250)
+    plt.show()
+    ani.save(file_name, writer='ffmpeg')  # imagemagick
+    
+    
 def plot_borough_progress(borough_str, plot_density, times):
-   
     subplot_num = len(times)
     state_ind  = m_neighbors.zone_to_state(m_neighbors.zone_neighbors)
     density_dicts = []

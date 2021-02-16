@@ -247,3 +247,10 @@ visual.draw_borough(ax, state_density, borough, 'average', color_map, norm)
 ax.xaxis.set_visible(False)
 ax.yaxis.set_visible(False)
 plt.show()
+
+density_t = {}
+for s in range(manhattan_game.States):
+    density_t[zone_ind[s]] = [sum(evaluated_y[s,:,t]) for t in range(T) ]
+
+visual.animate_combo('density_tolled.mp4', tolled_states, density_t, 
+                     bar_labels, T, borough, color_map, norm, toll_time_vary)

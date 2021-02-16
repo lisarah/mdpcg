@@ -38,6 +38,7 @@ def extract_kernel(file, Timesteps, States):
           probability of transitioning from state i to state j.
     """
     kernel_array = pd.read_csv(file, header=0).values
+    print(kernel_array.shape)
     kernel_list = [kernel_array[:, t*States: (t+1) * (States)].T 
                    for t in range(Timesteps)]
     return kernel_list
