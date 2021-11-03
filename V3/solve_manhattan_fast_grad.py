@@ -44,12 +44,12 @@ print(f'convexity factor is {alpha}')
 
 two_norm_A = np.linalg.norm(A_array,2)
 step_size = 0.001
-step_size = alpha/2/(two_norm_A**2)
+step_size = alpha/(two_norm_A**2)
 print(f'norm of A is {two_norm_A}, step size is {step_size}')
 
 average_tau = []
 average_y = []
-last_y = []
+true_constraint_violation = []
 for epsilon in epsilon_list:
     distribution_history = []
     # define dual ascent approximate gradient update.
@@ -91,7 +91,9 @@ for epsilon in epsilon_list:
     average_tau.append(ut.cumulative_average(tau_hist))
     average_tau[-1].pop(0)
     average_y.append(ut.cumulative_average(distribution_history))
-    last_y = distribution_history
+    for grad in gradient_hist:
+        grad[grad< 0] = 0
+        true_constraint_violation.append(np.linalg.norm(grad, 2))
 
 #-------------dual ascent and constraint violation convergence --------------------
 constraint_violation= []
@@ -109,41 +111,63 @@ for ind in range(Iterations):
         constraint_violation[-1].append(np.linalg.norm(violation, 2))
 #--------------epsilon vs toll and constraint violation-------------#
 iteration_line = np.linspace(1, len(average_y[-1]),len(average_y[-1]))
-fig_width = 5.3 * 2
-epsilon_plot = plt.figure(figsize=(fig_width,8))
-toll_plot = epsilon_plot.add_subplot(2,1,1)
-plt.plot(epsilon_list, [toll_values[ind][-1] for ind in range(Iterations)], 
-         linewidth=3)
-plt.grid()
-plt.xscale('log')
-plt.yscale('log')
-plt.setp(toll_plot.get_xticklabels(), visible=False)
-epsilon_plot.add_subplot(2, 1, 2, sharex =toll_plot )
-plt.plot(epsilon_list, [constraint_violation[ind][-1] for ind in range(Iterations)], 
-         linewidth=3)
-plt.xscale('log')
-plt.xlabel('$\epsilon$',fontsize=12)
-plt.yscale('log')
-plt.grid()
-plt.subplots_adjust(hspace=.0)
+    
+if len(epsilon_list) > 1:
+    fig_width = 5.3 * 2
+    epsilon_plot = plt.figure(figsize=(fig_width,8))
+    toll_plot = epsilon_plot.add_subplot(2,1,1)
+    plt.plot(epsilon_list, [toll_values[ind][-1] for ind in range(Iterations)], 
+            linewidth=3)
+    plt.grid()
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.setp(toll_plot.get_xticklabels(), visible=False)
+    epsilon_plot.add_subplot(2, 1, 2, sharex =toll_plot )
+    plt.plot(epsilon_list, [constraint_violation[ind][-1] for ind in range(Iterations)], 
+            linewidth=3)
+    plt.xscale('log')
+    plt.xlabel('$\epsilon$',fontsize=12)
+    plt.yscale('log')
+    plt.grid()
+    plt.subplots_adjust(hspace=.0)
 
 plt.figure()
 print('fig 1 = toll norm as function of designer iteration')
-plt.plot(epsilon_list, [toll_values[ind][-1] for ind in range(Iterations)], 
-         linewidth=3)
-plt.xscale('log')
-plt.xlabel('$\epsilon$',fontsize=12)
-plt.yscale('log')
+if len(epsilon_list) == 1:
+    plt.plot(epsilon_list, [toll_values[ind][-1] for ind in range(Iterations)], 
+        linewidth=3, label='$\sum_{i}^k\| \tau^i \|_2')
+    plt.xlabel('$k$',fontsize=12)
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.legend(fontsize=10)
+else:
+    plt.plot(epsilon_list, [toll_values[ind][-1] for ind in range(Iterations)], 
+            linewidth=3)
+    plt.xscale('log')
+    plt.xlabel('$\epsilon$',fontsize=12)
+    plt.yscale('log')
 plt.grid()
+plt.tight_layout()
+plt.savefig('fast_grad_res/toll_norm_as_function_of_designer_iteration.png')
 
 plt.figure()
 print('fig 2 = constraint_violation as function of designer iteration')
-plt.plot(epsilon_list, [constraint_violation[ind][-1] for ind in range(Iterations)], 
-         linewidth=3)
-plt.xscale('log')
-plt.xlabel('$\epsilon$',fontsize=12)
-plt.yscale('log')
+if len(epsilon_list) == 1:
+    plt.plot(true_constraint_violation, linewidth=3,label='true $\hat{y}^k$ violation')
+    plt.plot(constraint_violation[0], linewidth=3,label='average $\hat{y}^k$ violation')
+    plt.xlabel('$k$',fontsize=12)
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.legend(fontsize=10)
+else:
+    plt.plot(epsilon_list, [constraint_violation[ind] for ind in range(Iterations)], 
+             linewidth=3)
+    plt.xlabel('$\epsilon$',fontsize=12)
+    plt.xscale('log')
+    plt.yscale('log')
 plt.grid()
+plt.tight_layout()
+plt.savefig('fast_grad_res/constraint_violation_average_vs_true.png')
 
 
 #-----------average tolling values for last approximation ------------
@@ -157,6 +181,8 @@ plt.legend()
 plt.xlabel('Iterations')
 plt.yscale('log')
 plt.grid()
+plt.tight_layout()
+plt.savefig('fast_grad_res/toll_norm_convergence.png')
 
 #-------------tolling system level info --------------------
 expected_mdp_cost = []
@@ -173,9 +199,13 @@ for ind in range(len(average_y[-1])):
 print('fig 3 = Total profit from toll as function of designer iteration')
 fig = plt.figure();
 pt.objective(toll_received, None, 'Total toll profit')
+plt.tight_layout()
+plt.savefig('fast_grad_res/total_profit.png')
 
 print('fig 4 = Average driver profit as function of designer iteration')
 pt.objective(expected_mdp_cost, expected_mdp_cost[0], 'Social Cost for driver')  
+plt.tight_layout()
+plt.savefig('fast_grad_res/social_driver_profit.png')
 
 avg_cost = 10000 # average cost of the game
 
@@ -249,10 +279,12 @@ visual.draw_borough(ax, state_density, borough, 'average', color_map, norm)
 ax.xaxis.set_visible(False)
 ax.yaxis.set_visible(False)
 plt.show()
+plt.tight_layout()
+plt.savefig('fast_grad_res/composed_manhattan.png')
 
-density_t = {}
-for s in range(manhattan_game.States):
-    density_t[zone_ind[s]] = [sum(evaluated_y[s,:,t]) for t in range(T) ]
+# density_t = {}
+# for s in range(manhattan_game.States):
+#     density_t[zone_ind[s]] = [sum(evaluated_y[s,:,t]) for t in range(T) ]
 
-visual.animate_combo('density_tolled.mp4', tolled_states, density_t, 
-                     bar_labels, T, borough, color_map, norm, toll_time_vary)
+# visual.animate_combo('density_tolled.mp4', tolled_states, density_t, 
+#                      bar_labels, T, borough, color_map, norm, toll_time_vary)

@@ -110,24 +110,25 @@ for ind in range(Iterations):
         violation = np.array([v for v in threshold if v > 0])
         constraint_violation[-1].append(np.linalg.norm(violation, 2))
 #--------------epsilon vs toll and constraint violation-------------#
-iteration_line = np.linspace(1, len(average_y[-1]),len(average_y[-1]))
-fig_width = 5.3 * 2
-epsilon_plot = plt.figure(figsize=(fig_width,8))
-toll_plot = epsilon_plot.add_subplot(2,1,1)
-plt.plot(epsilon_list, [toll_values[ind][-1] for ind in range(Iterations)], 
-         linewidth=3)
-plt.grid()
-plt.xscale('log')
-plt.yscale('log')
-plt.setp(toll_plot.get_xticklabels(), visible=False)
-epsilon_plot.add_subplot(2, 1, 2, sharex =toll_plot )
-plt.plot(epsilon_list, [constraint_violation[ind][-1] for ind in range(Iterations)], 
-         linewidth=3)
-plt.xscale('log')
-plt.xlabel('$\epsilon$',fontsize=12)
-plt.yscale('log')
-plt.grid()
-plt.subplots_adjust(hspace=.0)
+if len(epsilon_list) > 1:
+    iteration_line = np.linspace(1, len(average_y[-1]),len(average_y[-1]))
+    fig_width = 5.3 * 2
+    epsilon_plot = plt.figure(figsize=(fig_width,8))
+    toll_plot = epsilon_plot.add_subplot(2,1,1)
+    plt.plot(epsilon_list, [toll_values[ind][-1] for ind in range(Iterations)], 
+            linewidth=3)
+    plt.grid()
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.setp(toll_plot.get_xticklabels(), visible=False)
+    epsilon_plot.add_subplot(2, 1, 2, sharex =toll_plot )
+    plt.plot(epsilon_list, [constraint_violation[ind][-1] for ind in range(Iterations)], 
+            linewidth=3)
+    plt.xscale('log')
+    plt.xlabel('$\epsilon$',fontsize=12)
+    plt.yscale('log')
+    plt.grid()
+    plt.subplots_adjust(hspace=.0)
 
 
 plt.figure()
@@ -139,7 +140,7 @@ plt.xlabel('$\epsilon$',fontsize=12)
 plt.yscale('log')
 plt.grid()
 plt.tight_layout()
-plt.save('toll norm as function of designer iteration')
+plt.savefig('toll_norm_as_function_of_designer_iteration.png')
 
 plt.figure()
 print('fig 2 = constraint_violation as function of designer iteration')
@@ -158,7 +159,7 @@ else:
     plt.yscale('log')
 plt.grid()
 plt.tight_layout()
-plt.save('constraint violation average vs true')
+plt.savefig('constraint_violation_average_vs_true.png')
 
 #-----------average tolling values for last approximation ------------
 plt.figure()
@@ -172,7 +173,7 @@ plt.xlabel('Iterations')
 plt.yscale('log')
 plt.grid()
 plt.tight_layout()
-plt.save('toll norm convergence')
+plt.savefig('toll_norm_convergence.py')
 
 #-------------tolling system level info --------------------
 expected_mdp_cost = []
@@ -190,12 +191,12 @@ print('fig 3 = Total profit from toll as function of designer iteration')
 fig = plt.figure()
 pt.objective(toll_received, None, 'Total toll profit')
 plt.tight_layout()
-plt.save('total profit')
+plt.savefig('total_profit.png')
 
 print('fig 4 = Average driver profit as function of designer iteration')
 pt.objective(expected_mdp_cost, expected_mdp_cost[0], 'Social Cost for driver')  
 plt.tight_layout()
-plt.save('social driver profit')
+plt.savefig('social_driver_profit.png')
 
 avg_cost = 10000 # average cost of the game
 
@@ -271,7 +272,7 @@ ax.xaxis.set_visible(False)
 ax.yaxis.set_visible(False)
 plt.show()
 plt.tight_layout()
-plt.save('composed_manhattan')
+plt.savefig('composed_manhattan.png')
 
 #------------------- constraint violation ----------------------
 print('fig 6 = Total constraint violation vs gradient descent iteration')
@@ -283,7 +284,7 @@ plt.xlabel('$k$',fontsize=12)
 plt.yscale('linear')
 plt.grid()
 plt.show()
-plt.save('total_constriant_violation')
+plt.savefig('total_constriant_violation.png')
 
 density_t = {}
 for s in range(manhattan_game.States):

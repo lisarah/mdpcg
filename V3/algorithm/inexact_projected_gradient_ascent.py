@@ -69,7 +69,7 @@ def fast_inexact_pga(tau_0, approx_gradient, step_size, max_iteration = 1000,
     tau_hist = [tau_0]
     gradient_hist = []
     t_start = datetime.now()
-    A_t = 0
+    A_t = 0.1/lipschitz
     w_t = 0
     for t in range(max_iteration):
         if verbose and t % 100 == 0:
@@ -79,15 +79,15 @@ def fast_inexact_pga(tau_0, approx_gradient, step_size, max_iteration = 1000,
             print(np.linalg.norm(tau_hist[-1], 2))
         gradient = approx_gradient(tau_hist[-1], epsilons[t])
         gradient_hist.append(gradient)
-        alpha_t = (t+1)/2
-        A_t += alpha_t / lipschitz
+        alpha_t = 1/(t+1)
+        # A_t = (t+1) * (t+2) / 4/ lipschitz
         w_t += alpha_t * gradient
         non_zero_w_t  = w_t
         non_zero_w_t[non_zero_w_t < 0] = 0
-        frac = alpha_t / (A_t * lipschitz)
+        frac = 2 / (t + 3)
         tau_next = tau_hist[-1] + step_size * gradient
         tau_next[tau_next < 0] = 0
-        tau_next = (1 - frac) * tau_next + frac * non_zero_w_t / lipschitz
+        tau_next = (1 - frac) * tau_next + frac * non_zero_w_t 
         tau_hist.append(tau_next)
 
     return tau_hist, gradient_hist
