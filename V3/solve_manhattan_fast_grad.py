@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Feb  5 13:20:58 2021
+Created on Wed Nov  3 04:01:43 2021
 
-Tolled version of Manhattan game.
-@author: Sarah Li
+@author: craba
 """
 import numpy as np
 import algorithm.FW as fw
@@ -50,7 +49,7 @@ print(f'norm of A is {two_norm_A}, step size is {step_size}')
 
 average_tau = []
 average_y = []
-true_constraint_violation = []
+last_y = []
 for epsilon in epsilon_list:
     distribution_history = []
     # define dual ascent approximate gradient update.
@@ -75,25 +74,24 @@ for epsilon in epsilon_list:
             violation += sum([max([0, g]) for g in gradient[-1]])
          
         # print (f'total constraint violation = {violation}')
+    
         return np.asarray(gradient)
     
     # tau_0 = 50*np.ones((T,S))
     tau_0 = np.zeros((T,S))
     epsilons = [epsilon for i in range(max_iteration)]
-    tau_hist, gradient_hist = pga.inexact_pga(tau_0, approx_gradient, 
+    tau_hist, gradient_hist = pga.fast_inexact_pga(tau_0, approx_gradient, 
                                               step_size,
                                               max_iteration = max_iteration, 
                                               epsilons=epsilons, 
-                                              verbose = True)
-    for grad in gradient_hist:
-        grad[grad< 0] = 0
-        true_constraint_violation.append(np.sum(grad))
+                                              verbose = True, 
+                                              lipschitz=alpha)
     
     # average population results
     average_tau.append(ut.cumulative_average(tau_hist))
     average_tau[-1].pop(0)
     average_y.append(ut.cumulative_average(distribution_history))
-
+    last_y = distribution_history
 
 #-------------dual ascent and constraint violation convergence --------------------
 constraint_violation= []
@@ -220,7 +218,6 @@ for z in tolled_states:
     tolls[z] = evaluated_tau[:, s_ind]
 
 # plot the time averaged constrained density, time dependent tolls and density
-print('fig 5 = Composed figure with toll, violation, manhattan map')
 fig_width = 5.3 * 2
 f = plt.figure(figsize=(fig_width,8))
 seq = [0, 2,  1]
@@ -251,17 +248,6 @@ ax = f.add_subplot(1,2,2)#(1, 2, 1)
 visual.draw_borough(ax, state_density, borough, 'average', color_map, norm)
 ax.xaxis.set_visible(False)
 ax.yaxis.set_visible(False)
-plt.show()
-
-#------------------- constraint violation ----------------------
-print('fig 6 = Total constraint violation vs gradient descent iteration')
-plt.figure()
-plt.title('Total constraint violation vs gradient descent iteration')
-plt.plot(true_constraint_violation, linewidth = 6,)
-plt.xscale('linear')
-plt.xlabel('$k$',fontsize=12)
-plt.yscale('linear')
-plt.grid()
 plt.show()
 
 density_t = {}

@@ -181,15 +181,16 @@ def set_axis_limits(ax_bar, ax_time, T, is_toll):
     if not is_toll:
         ax_bar.set_ylim([0, 450])
     else:
-        ax_bar.set_ylim([0, 0.15]) # when drawing tolling value        
+        ax_bar.set_ylim([0, 0.5]) # when drawing tolling value        
         ax_bar.set_xlim([0, T-1])
+        ax_bar.grid(True)
+
 
     ax_bar.xaxis.set_visible(False)           
     ax_time.set_xlim([0, T-1])
     ax_time.set_ylim([0, 550])
     ax_time.set_xlabel(r"Time",fontsize=13)
     ax_time.grid(True)
-    ax_bar.grid(True)
 
 def animate_combo(file_name, violation_states, 
                   density_dict, 

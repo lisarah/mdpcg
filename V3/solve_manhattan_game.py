@@ -46,8 +46,8 @@ pt.objective(obj_history, None, 'Frank Wolfe')
 
 constraint_violation= {}
 density_dict = {}
-min_density = 999
-max_density = -1
+min_density = 1
+max_density = 510
 state_ind = m_neighbors.zone_to_state(m_neighbors.zone_neighbors)
 zone_ind = {y:x for x, y in state_ind.items()}
 for s in range(manhattan_game.States):
@@ -70,8 +70,8 @@ for z in constraint_violation.keys():
         time_density.append(np.sum(y_opt[state_ind[z], :, t]))
     violation_density[z] = time_density
 
-norm = mpl.colors.Normalize(vmin=(min_density), vmax=(max_density))
-color_map = plt.get_cmap('coolwarm')
+norm = mpl.colors.Normalize(vmin=(0), vmax=(500))
+color_map = plt.get_cmap('coolwarm') # Spectral
 bar_colors = []
 for violation in constraint_violation.values():
     R,G,B,A = color_map(norm(violation + constrained_value))
