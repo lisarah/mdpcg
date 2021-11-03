@@ -87,7 +87,7 @@ for epsilon in epsilon_list:
                                               verbose = True)
     for grad in gradient_hist:
         grad[grad< 0] = 0
-        true_constraint_violation.append(np.sum(grad))
+        true_constraint_violation.append(np.linalg.norm(grad, 2))
     
     # average population results
     average_tau.append(ut.cumulative_average(tau_hist))
@@ -129,6 +129,7 @@ plt.yscale('log')
 plt.grid()
 plt.subplots_adjust(hspace=.0)
 
+
 plt.figure()
 print('fig 1 = toll norm as function of designer iteration')
 plt.plot(epsilon_list, [toll_values[ind][-1] for ind in range(Iterations)], 
@@ -137,16 +138,27 @@ plt.xscale('log')
 plt.xlabel('$\epsilon$',fontsize=12)
 plt.yscale('log')
 plt.grid()
+plt.tight_layout()
+plt.save('toll norm as function of designer iteration')
 
 plt.figure()
 print('fig 2 = constraint_violation as function of designer iteration')
-plt.plot(epsilon_list, [constraint_violation[ind][-1] for ind in range(Iterations)], 
-         linewidth=3)
-plt.xscale('log')
-plt.xlabel('$\epsilon$',fontsize=12)
-plt.yscale('log')
+if len(epsilon_list) == 1:
+    plt.plot(true_constraint_violation, linewidth=3,label='true $\hat{y}^k$ violation')
+    plt.plot(constraint_violation[ind], linewidth=3,label='average $\hat{y}^k$ violation')
+    plt.xlabel('$k$',fontsize=12)
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.legend()
+else:
+    plt.plot(epsilon_list, [constraint_violation[ind] for ind in range(Iterations)], 
+             linewidth=3)
+    plt.xlabel('$\epsilon$',fontsize=12)
+    plt.xscale('log')
+    plt.yscale('log')
 plt.grid()
-
+plt.tight_layout()
+plt.save('constraint violation average vs true')
 
 #-----------average tolling values for last approximation ------------
 plt.figure()
@@ -159,6 +171,8 @@ plt.legend()
 plt.xlabel('Iterations')
 plt.yscale('log')
 plt.grid()
+plt.tight_layout()
+plt.save('toll norm convergence')
 
 #-------------tolling system level info --------------------
 expected_mdp_cost = []
@@ -173,11 +187,15 @@ for ind in range(len(average_y[-1])):
         np.multiply(state_time_density, average_tau[-1][ind].T)))
     # print(np.sum(cur_cost))
 print('fig 3 = Total profit from toll as function of designer iteration')
-fig = plt.figure();
+fig = plt.figure()
 pt.objective(toll_received, None, 'Total toll profit')
+plt.tight_layout()
+plt.save('total profit')
 
 print('fig 4 = Average driver profit as function of designer iteration')
 pt.objective(expected_mdp_cost, expected_mdp_cost[0], 'Social Cost for driver')  
+plt.tight_layout()
+plt.save('social driver profit')
 
 avg_cost = 10000 # average cost of the game
 
@@ -252,17 +270,20 @@ visual.draw_borough(ax, state_density, borough, 'average', color_map, norm)
 ax.xaxis.set_visible(False)
 ax.yaxis.set_visible(False)
 plt.show()
+plt.tight_layout()
+plt.save('composed_manhattan')
 
 #------------------- constraint violation ----------------------
 print('fig 6 = Total constraint violation vs gradient descent iteration')
 plt.figure()
 plt.title('Total constraint violation vs gradient descent iteration')
-plt.plot(true_constraint_violation, linewidth = 6,)
+plt.plot(true_constraint_violation, linewidth = 3,)
 plt.xscale('linear')
 plt.xlabel('$k$',fontsize=12)
 plt.yscale('linear')
 plt.grid()
 plt.show()
+plt.save('total_constriant_violation')
 
 density_t = {}
 for s in range(manhattan_game.States):
