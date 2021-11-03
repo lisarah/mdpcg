@@ -234,7 +234,8 @@ Man_transition_matrix = state_transition_matrix(Man_trips_rush_hour, Man_trip_hi
 
 # Sort trips into periods of time tau minutes long
 timeRange = 3
-partition_amount = math.ceil(timeRange/Man_tau)
+# partition_amount = math.ceil(timeRange/Man_tau)
+partition_amount = 15
 time_partition_bins = np.linspace(9,12,partition_amount+1)
 
 # Create histogram for number of trips per 12 minute partition
