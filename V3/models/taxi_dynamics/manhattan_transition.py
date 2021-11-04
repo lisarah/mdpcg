@@ -51,6 +51,21 @@ def uniform_initial_distribution(M):
     p0 = np.ones(state_num) * M / state_num
     return p0
 
+def random_distribution(M, constraint_val):
+    """ Return a random density array of drivers in Manhattan states. """
+    state_num = len(manhattan.STATE_NEIGHBORS)
+    p0 = np.random.rand(state_num)
+    p0 = p0 / sum(p0) * M
+    constraint_violated = True
+    while constraint_violated:
+        constraint_violated = False
+        for s in range(len(p0)):
+            if p0[s] > constraint_val:
+                constraint_violated = True
+                p0 += (p0[s] - constraint_val) / (state_num - 1)
+                p0[s] = constraint_val
+    return p0
+
 
 def transition_kernel(T, epsilon):
     """ Return a  4 dimensional transition kernel for Manhattan's MDP dynamics.

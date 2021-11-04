@@ -29,6 +29,8 @@ max_iteration = 2000 # number of iterations of dual ascent
 # game definition with initial distribution
 manhattan_game = mdpcg.quad_game(T, manhattan=True)
 initial_distribution = m_dynamics.uniform_initial_distribution(fleet_size)
+initial_distributions = [
+    m_dynamics.random_distribution(fleet_size, constrained_value) for i in range(10)]
 S = manhattan_game.States
 A = manhattan_game.Actions
 
@@ -51,48 +53,48 @@ print(f'norm of A is {two_norm_A}, step size is {step_size}')
 average_tau = []
 average_y = []
 true_constraint_violation = []
-for epsilon in epsilon_list:
-    distribution_history = []
-    # define dual ascent approximate gradient update.
-    def approx_gradient(tau, epsilon):
-        x0 = np.zeros((S, A, T));   
-        manhattan_game.reset_toll()
-        for t in range(T):
-            manhattan_game.tolls += sum([
-                tau[t, s] * A_tensor[t*S + s, :, :, :] for s in range(S)])
-            
-        approx_y = fw.FW(x0, initial_distribution, manhattan_game.P, 
-                         manhattan_game.evaluate_cost, maxIterations = 1e6,
-                         maxError=epsilon, returnHist=False)
-        distribution_history.append(approx_y)
+init_dist  = m_dynamics.uniform_initial_distribution(fleet_size)
+distribution_history = []
+# define dual ascent approximate gradient update.
+def approx_gradient(tau, epsilon): # this eps comes from inexact_pga
+    x0 = np.zeros((S, A, T));   
+    manhattan_game.reset_toll()
+    for t in range(T):
+        manhattan_game.tolls += sum([
+            tau[t, s] * A_tensor[t*S + s, :, :, :] for s in range(S)])
+    # solve first game
+    approx_y = fw.FW(x0, init_dist, manhattan_game.P, 
+                        manhattan_game.evaluate_cost, maxIterations = 1e6,
+                        maxError=epsilon, returnHist=False)
+    distribution_history.append(approx_y)
+
+    pop_distribution = np.sum(approx_y, axis=1) # size TxS
+    constraint_arr = np.ones(pop_distribution.shape) * constrained_value
+    gradient = pop_distribution - constraint_arr # gradient has size T x S
+
+    # for t in range(T):
+    #     gradient.append([
+    #         np.sum(approx_y[s,  :, t]) - constrained_value 
+    #         for s in range(S)])
+    #     violation += sum([max([0, g]) for g in gradient[-1]])
+        
+    return gradient.T
     
-        gradient = [] # gradient has size T x S
-        violation = 0
-        for t in range(T):
-            gradient.append([
-                np.sum(approx_y[s,  :, t]) - constrained_value 
-                for s in range(S)])
-            violation += sum([max([0, g]) for g in gradient[-1]])
-         
-        # print (f'total constraint violation = {violation}')
-        return np.asarray(gradient)
-    
-    # tau_0 = 50*np.ones((T,S))
-    tau_0 = np.zeros((T,S))
-    epsilons = [epsilon for i in range(max_iteration)]
-    tau_hist, gradient_hist = pga.inexact_pga(tau_0, approx_gradient, 
-                                              step_size,
-                                              max_iteration = max_iteration, 
-                                              epsilons=epsilons, 
-                                              verbose = True)
-    for grad in gradient_hist:
-        grad[grad< 0] = 0
-        true_constraint_violation.append(np.linalg.norm(grad, 2))
-    
-    # average population results
-    average_tau.append(ut.cumulative_average(tau_hist))
-    average_tau[-1].pop(0)
-    average_y.append(ut.cumulative_average(distribution_history))
+tau_0 = np.zeros((T,S))
+epsilons = [epsilon for i in range(max_iteration)]
+tau_hist, gradient_hist = pga.inexact_pga(tau_0, approx_gradient, 
+                                            step_size,
+                                            max_iteration = max_iteration, 
+                                            epsilons=epsilons, 
+                                            verbose = True)
+for grad in gradient_hist:
+    grad[grad< 0] = 0
+    true_constraint_violation.append(np.linalg.norm(grad, 2))
+
+# average population results
+average_tau.append(ut.cumulative_average(tau_hist))
+average_tau[-1].pop(0)
+average_y.append(ut.cumulative_average(distribution_history))
 
 
 #-------------dual ascent and constraint violation convergence --------------------
@@ -110,8 +112,8 @@ for ind in range(Iterations):
         violation = np.array([v for v in threshold if v > 0])
         constraint_violation[-1].append(np.linalg.norm(violation, 2))
 #--------------epsilon vs toll and constraint violation-------------#
+iteration_line = np.linspace(1, len(average_y[-1]),len(average_y[-1]))
 if len(epsilon_list) > 1:
-    iteration_line = np.linspace(1, len(average_y[-1]),len(average_y[-1]))
     fig_width = 5.3 * 2
     epsilon_plot = plt.figure(figsize=(fig_width,8))
     toll_plot = epsilon_plot.add_subplot(2,1,1)
@@ -133,14 +135,17 @@ if len(epsilon_list) > 1:
 
 plt.figure()
 print('fig 1 = toll norm as function of designer iteration')
-plt.plot(epsilon_list, [toll_values[ind][-1] for ind in range(Iterations)], 
-         linewidth=3)
+if len(epsilon_list) > 1:
+    plt.plot(epsilon_list, [toll_values[ind][-1] for ind in range(Iterations)], 
+            linewidth=3)
+else:
+    plt.plot(toll_values[0], linewidth=3)
 plt.xscale('log')
 plt.xlabel('$\epsilon$',fontsize=12)
 plt.yscale('log')
 plt.grid()
 plt.tight_layout()
-plt.savefig('toll_norm_as_function_of_designer_iteration.png')
+plt.savefig('grad_res/toll_norm_as_function_of_designer_iteration.png')
 
 plt.figure()
 print('fig 2 = constraint_violation as function of designer iteration')
@@ -159,7 +164,7 @@ else:
     plt.yscale('log')
 plt.grid()
 plt.tight_layout()
-plt.savefig('constraint_violation_average_vs_true.png')
+plt.savefig('grad_res/constraint_violation_average_vs_true.png')
 
 #-----------average tolling values for last approximation ------------
 plt.figure()
@@ -191,12 +196,12 @@ print('fig 3 = Total profit from toll as function of designer iteration')
 fig = plt.figure()
 pt.objective(toll_received, None, 'Total toll profit')
 plt.tight_layout()
-plt.savefig('total_profit.png')
+plt.savefig('grad_res/total_profit.png')
 
 print('fig 4 = Average driver profit as function of designer iteration')
 pt.objective(expected_mdp_cost, expected_mdp_cost[0], 'Social Cost for driver')  
 plt.tight_layout()
-plt.savefig('social_driver_profit.png')
+plt.savefig('grad_res/social_driver_profit.png')
 
 avg_cost = 10000 # average cost of the game
 
@@ -272,7 +277,7 @@ ax.xaxis.set_visible(False)
 ax.yaxis.set_visible(False)
 plt.show()
 plt.tight_layout()
-plt.savefig('composed_manhattan.png')
+plt.savefig('grad_res/composed_manhattan.png')
 
 #------------------- constraint violation ----------------------
 print('fig 6 = Total constraint violation vs gradient descent iteration')
@@ -284,7 +289,7 @@ plt.xlabel('$k$',fontsize=12)
 plt.yscale('linear')
 plt.grid()
 plt.show()
-plt.savefig('total_constriant_violation.png')
+plt.savefig('grad_res/total_constriant_violation.png')
 
 density_t = {}
 for s in range(manhattan_game.States):

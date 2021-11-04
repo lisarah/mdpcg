@@ -27,6 +27,7 @@ def inexact_pga(tau_0, approx_gradient, step_size, max_iteration = 1000,
     """
     if epsilons is None:
         # use the harmonic series as epsilons by default. 
+        print('using harmonic series as epsilon in inexact projected gradient descent.')
         epsilons = [1/(k+1) for k in range(max_iteration)]
     
     tau_hist = [tau_0]

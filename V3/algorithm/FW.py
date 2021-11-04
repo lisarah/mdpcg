@@ -70,7 +70,7 @@ def FW(x0, p0, P, gradF,
         
         it += 1;
     if it >= maxIterations:
-        print ("ran out of iteraitons FW, error is", err);
+        print ("Frank wolfe ran out of iterations, error is", err)
     if returnLastGrad:
         return xk, xHistory, err;
     elif returnHist:

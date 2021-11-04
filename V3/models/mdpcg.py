@@ -14,7 +14,7 @@ import cvxpy as cvx
 import pandas as pd
 
 
-data_dir = "C:\\Users\\craba\\Desktop\\code\\mdpcg\\V3\\models\\taxi_dynamics\\"
+data_dir = "~/cloudfiles/code/Users/sarahli/mdpcg/V3/models/taxi_dynamics/"
 
 class quad_game:
 #--------------constructor-------------------------------
@@ -93,14 +93,14 @@ class quad_game:
         linear_term = sum([sum([sum([self.C[i, j, t]*y_ijt[(i, j, t)]
                 for i in range(self.States) ]) 
                 for j in range(self.Actions)]) 
-                for t in range(self.Time)]);
+                for t in range(self.Time)])
         
         objective_value = 1 * linear_term
         if is_social:
             objective_value = objective_value + quad_term
         else:
             objective_value = objective_value + 0.5 * quad_term
-        return objective_value;
+        return objective_value
     
     def evaluate_objective(self, y, constraint_value = 0, tolls = None):
         """Evaluate the objective for a given population distribution."""
