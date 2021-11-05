@@ -33,11 +33,11 @@ class Trip:
     def __init__(self, trip_instance):
         # Pickup Date retrieval
         pudate_ = trip_instance[1].split(" ")[0]
-        self.pudate = datetime.datetime.strptime(pudate_, '%m/%d/%Y')
+        self.pudate = datetime.datetime.strptime(pudate_, '%Y-%m-%d')  #'%m/%d/%Y'
         
         # Dropoff Date retrieval
         dodate_ = trip_instance[2].split(" ")[0]
-        self.dodate = datetime.datetime.strptime(dodate_, '%m/%d/%Y')
+        self.dodate = datetime.datetime.strptime(dodate_, '%Y-%m-%d')  #'%m/%d/%Y'
         
         # Pickup Time retrieval
         putime_ = trip_instance[1].split(" ")[1]

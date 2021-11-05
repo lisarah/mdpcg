@@ -96,7 +96,6 @@ average_tau.append(ut.cumulative_average(tau_hist))
 average_tau[-1].pop(0)
 average_y.append(ut.cumulative_average(distribution_history))
 
-
 #-------------dual ascent and constraint violation convergence --------------------
 constraint_violation= []
 toll_values = []
@@ -111,6 +110,13 @@ for ind in range(Iterations):
                                      for t in range(T)]    
         violation = np.array([v for v in threshold if v > 0])
         constraint_violation[-1].append(np.linalg.norm(violation, 2))
+
+#------- saving info for comparison with the fast gradient method ------------#        
+tau_norm_grad = [np.linalg.norm(tau, 2) for tau in tau_hist]
+tau_avg_grad = [np.linalg.norm(x, 2) for x in average_tau[-1]]
+constraint_violation_avg_grad = constraint_violation[-1]
+constraint_violation_grad = true_constraint_violation
+
 #--------------epsilon vs toll and constraint violation-------------#
 iteration_line = np.linspace(1, len(average_y[-1]),len(average_y[-1]))
 if len(epsilon_list) > 1:
@@ -140,6 +146,7 @@ if len(epsilon_list) > 1:
             linewidth=3)
 else:
     plt.plot(toll_values[0], linewidth=3)
+    toll_value_grad = toll_values[0] # save for fast grad comparison
 plt.xscale('log')
 plt.xlabel('$\epsilon$',fontsize=12)
 plt.yscale('log')
@@ -178,7 +185,7 @@ plt.xlabel('Iterations')
 plt.yscale('log')
 plt.grid()
 plt.tight_layout()
-plt.savefig('toll_norm_convergence.py')
+plt.savefig('toll_norm_convergence.png')
 
 #-------------tolling system level info --------------------
 expected_mdp_cost = []
@@ -291,9 +298,84 @@ plt.grid()
 plt.show()
 plt.savefig('grad_res/total_constriant_violation.png')
 
-density_t = {}
-for s in range(manhattan_game.States):
-    density_t[zone_ind[s]] = [sum(evaluated_y[s,:,t]) for t in range(T) ]
+# density_t = {}
+# for s in range(manhattan_game.States):
+#     density_t[zone_ind[s]] = [sum(evaluated_y[s,:,t]) for t in range(T) ]
 
-visual.animate_combo('density_tolled.mp4', tolled_states, density_t, 
-                     bar_labels, T, borough, color_map, norm, toll_time_vary)
+# visual.animate_combo('density_tolled.mp4', tolled_states, density_t, 
+#                      bar_labels, T, borough, color_map, norm, toll_time_vary)
+
+
+
+
+
+plt.figure()
+print('fig 2 = constraint_violation as function of designer iteration')
+
+plt.plot(constraint_violation_grad, '-.', linewidth=6,
+          label='standard grad. desc.(true)',color='C0', alpha=0.5)
+plt.plot(constraint_violation_avg_grad, linewidth=3,
+          label='standard grad. desc. (avg)',color='C0')
+
+plt.plot(constraint_violation_fast, '-.', linewidth=6,
+          label='fast grad. desc. (true)',color='C1', alpha = 0.5)
+plt.plot(constraint_violation_avg_fast, linewidth=3,label='fast grad. desc. (avg)',color='C1')
+plt.xlabel('$k$',fontsize=12)
+plt.xscale('log')
+plt.yscale('log')
+plt.legend()
+
+plt.grid()
+plt.tight_layout()
+plt.savefig('comparison/constraint_violation.png')
+
+
+#-----------average tolling values for last approximation ------------
+plt.figure()
+print('fig 3 = toll norm as function of designer iteration')
+plt.plot(tau_norm_grad, linewidth=6, 
+          label='standard grad. desc. (true)', color='C0', alpha = 0.5)
+plt.plot(tau_avg_grad, linewidth=3,
+          label='standard grad. desc. (avg)',color='C0')
+
+plt.plot(tau_norm_fast, '-.', linewidth=6,
+          label='fast grad. desc. (true)',color='C1', alpha = 0.5)
+plt.plot(tau_avg_fast, linewidth=3,label='fast grad. desc. (avg)',color='C1')
+plt.legend()
+plt.xlabel('Iterations')
+plt.yscale('log')
+plt.xscale('log')
+plt.grid()
+plt.tight_layout()
+plt.savefig('toll_norm_convergence.png')
+
+#-------------tolling system level info --------------------
+
+print('fig 3 = Total profit from toll as function of designer iteration')
+fig = plt.figure(figsize=(6,3))
+plt.plot([((x - expected_mdp_cost[0])/expected_mdp_cost[0]) for x in expected_mdp_cost], 
+     linewidth=3, 
+     label='standard grad. desc.')
+plt.plot([((x - expected_mdp_cost_fast[0])/expected_mdp_cost_fast[0]) 
+          for x in expected_mdp_cost_fast], 
+     linewidth=3, 
+     label='fast grad. desc.', color='C1')
+plt.tight_layout()
+plt.legend()
+plt.xlabel('Iterations')
+# plt.yscale('log')
+plt.grid()
+plt.tight_layout()
+plt.savefig('compare/social_cost.pdf')
+
+fig = plt.figure()
+plt.plot([((x - expected_mdp_cost_fast[0])/expected_mdp_cost_fast[0]) 
+          for x in expected_mdp_cost_fast], 
+     linewidth=3, 
+     label='fast grad. desc.', color='C1')
+plt.tight_layout()
+plt.legend()
+plt.xlabel('Iterations')
+# plt.yscale('log')
+plt.grid()
+plt.savefig('grad_res/social_cost.png')

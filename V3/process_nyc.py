@@ -48,11 +48,11 @@ from haversine import haversine
 import csv
 #%% DATA %%#
 # Import trip data into numpy array
-data_file_name = "D:\\Behcet\\GameTheory\\NewYorkUber\\yellow_tripdata_2019-12.csv"
+data_file_name = "yellow_tripdata_2019-12.csv"
 new_york_dec_2019 = pd.read_csv(data_file_name, header = 0).to_numpy()
 
 # Import taxi zone lookup table
-taxi_zone_file = "D:\\Behcet\\GameTheory\\NewYorkUber\\taxi+_zone_lookup.csv"
+taxi_zone_file = "taxi+_zone_lookup.csv"
 taxi_zone_lookup = pd.read_csv(taxi_zone_file, header = 0)
 
 #%% BOROUGH ZONES %%#

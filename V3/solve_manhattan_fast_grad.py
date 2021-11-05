@@ -19,11 +19,11 @@ import matplotlib as mpl
 
 T = 15 # number of time steps of MDP
 epsilon = 10000 # error in approximate solution of drivers learning
-epsilon_list = [5e3]  # [1e5, 2e4, 2e3, 1e3]
+epsilon_list = [1e3]  # [1e5, 2e4, 2e3, 1e3]
 borough = 'Manhattan' # borough of interest
 fleet_size = 10000 # game population size
 constrained_value = 400 # maximum driver density per state
-max_iteration = 2000 # number of iterations of dual ascent
+max_iteration = 100 # number of iterations of dual ascent
 
 # game definition with initial distribution
 manhattan_game = mdpcg.quad_game(T, manhattan=True)
@@ -50,50 +50,43 @@ print(f'norm of A is {two_norm_A}, step size is {step_size}')
 average_tau = []
 average_y = []
 true_constraint_violation = []
-for epsilon in epsilon_list:
-    distribution_history = []
-    # define dual ascent approximate gradient update.
-    def approx_gradient(tau, epsilon):
-        x0 = np.zeros((S, A, T));   
-        manhattan_game.reset_toll()
-        for t in range(T):
-            manhattan_game.tolls += sum([
-                tau[t, s] * A_tensor[t*S + s, :, :, :] for s in range(S)])
-            
-        approx_y = fw.FW(x0, initial_distribution, manhattan_game.P, 
-                         manhattan_game.evaluate_cost, maxIterations = 1e6,
-                         maxError=epsilon, returnHist=False)
-        distribution_history.append(approx_y)
-    
-        gradient = [] # gradient has size T x S
-        violation = 0
-        for t in range(T):
-            gradient.append([
-                np.sum(approx_y[s,  :, t]) - constrained_value 
-                for s in range(S)])
-            violation += sum([max([0, g]) for g in gradient[-1]])
-         
-        # print (f'total constraint violation = {violation}')
-    
-        return np.asarray(gradient)
-    
-    # tau_0 = 50*np.ones((T,S))
-    tau_0 = np.zeros((T,S))
-    epsilons = [epsilon for i in range(max_iteration)]
-    tau_hist, gradient_hist = pga.fast_inexact_pga(tau_0, approx_gradient, 
-                                              step_size,
-                                              max_iteration = max_iteration, 
-                                              epsilons=epsilons, 
-                                              verbose = True, 
-                                              lipschitz=alpha)
-    
-    # average population results
-    average_tau.append(ut.cumulative_average(tau_hist))
-    average_tau[-1].pop(0)
-    average_y.append(ut.cumulative_average(distribution_history))
-    for grad in gradient_hist:
-        grad[grad< 0] = 0
-        true_constraint_violation.append(np.linalg.norm(grad, 2))
+distribution_history = []
+# define dual ascent approximate gradient update.
+def approx_gradient(tau, epsilon):
+    x0 = np.zeros((S, A, T));   
+    manhattan_game.reset_toll()
+    for t in range(T):
+        manhattan_game.tolls += sum([
+            tau[t, s] * A_tensor[t*S + s, :, :, :] for s in range(S)])
+        
+    approx_y = fw.FW(x0, initial_distribution, manhattan_game.P, 
+                     manhattan_game.evaluate_cost, maxIterations = 1e6,
+                     maxError=epsilon, returnHist=False)
+    distribution_history.append(approx_y)
+
+    pop_distribution = np.sum(approx_y, axis=1) # size TxS
+    constraint_arr = np.ones(pop_distribution.shape) * constrained_value
+    gradient = pop_distribution - constraint_arr # gradient has size T x 
+        
+    return gradient.T
+
+# tau_0 = 50*np.ones((T,S))
+tau_0 = np.zeros((T,S))
+epsilons = [epsilon for i in range(max_iteration)]
+tau_hist, gradient_hist = pga.fast_inexact_pga(tau_0, approx_gradient, 
+                                          step_size,
+                                          max_iteration = max_iteration, 
+                                          epsilons      = epsilons, 
+                                          verbose       = True, 
+                                          lipschitz=alpha)
+
+# average population results
+average_tau.append(ut.cumulative_average(tau_hist))
+average_tau[-1].pop(0)
+average_y.append(ut.cumulative_average(distribution_history))
+for grad in gradient_hist:
+    grad[grad< 0] = 0
+    true_constraint_violation.append(np.linalg.norm(grad, 2))
 
 #-------------dual ascent and constraint violation convergence --------------------
 constraint_violation= []
@@ -109,6 +102,13 @@ for ind in range(Iterations):
                                      for t in range(T)]    
         violation = np.array([v for v in threshold if v > 0])
         constraint_violation[-1].append(np.linalg.norm(violation, 2))
+        
+#------- saving info for comparison with the fast gradient method ------------#        
+tau_norm_fast = [np.linalg.norm(tau, 2) for tau in tau_hist]
+tau_avg_fast = [np.linalg.norm(x, 2) for x in average_tau[-1]]
+constraint_violation_avg_fast = constraint_violation[-1]
+constraint_violation_fast = true_constraint_violation
+
 #--------------epsilon vs toll and constraint violation-------------#
 iteration_line = np.linspace(1, len(average_y[-1]),len(average_y[-1]))
     

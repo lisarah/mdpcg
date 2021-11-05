@@ -13,8 +13,9 @@ import numpy as np
 import cvxpy as cvx
 import pandas as pd
 
-
-data_dir = "~/cloudfiles/code/Users/sarahli/mdpcg/V3/models/taxi_dynamics/"
+# azure "~/cloudfiles/code/Users/sarahli/mdpcg/V3/models/taxi_dynamics/"
+# home link
+data_dir = "C:\\Users\\craba\\Desktop\\code\\mdpcg\\V3\\models\\taxi_dynamics\\"
 
 class quad_game:
 #--------------constructor-------------------------------
