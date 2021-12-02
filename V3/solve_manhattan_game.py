@@ -130,3 +130,37 @@ for s in range(manhattan_game.States):
 violation_states = list(constraint_violation.keys())
 visual.animate_combo('density_unconstrained.mp4', violation_states, density_t, 
                      bar_labels, T, borough, color_map, norm)
+
+#-------------- sample for random initial distribution ----------------------
+N = 10 # total number of samples considered
+densities = {k: [] for k in constraint_violation.keys()}
+for sample in range(N):
+    initial_distribution = m_dynamics.random_distribution(10000, 400)
+    y_opt, y_history = fw.FW(x0, initial_distribution, manhattan_game.P, 
+                             manhattan_game.evaluate_cost, False, epsilon, 
+                             maxIterations = 1e6)
+    for z in constraint_violation.keys():  
+        time_density = []
+        for t in range(T):
+            time_density.append(np.sum(y_opt[state_ind[z], :, t]))
+        densities[z].append(time_density)
+
+max_density = {s: [] for s in densities.keys()}
+min_density = {s: [] for s in densities.keys()}
+avg_density = {s: [] for s in densities.keys()}          
+for key, density in densities.items():
+    density_arr = np.array(density)
+    max_density[key] = np.max(density_arr, axis=0)
+    min_density[key] = np.min(density_arr, axis=0)
+    avg_density[key] = 0.5 * (max_density[key] + min_density[key])
+plt.figure()
+seq_ind = 0
+for s in densities.keys():
+    plt.plot(avg_density[s], label=bar_labels[seq[seq_ind]])
+    plt.fill_between([i for i in range(T)], min_density[s], max_density[s], alpha=0.3)
+    seq_ind +=1
+plt.xlabel(r"Time",fontsize=13)
+plt.ylabel(r"Population density")  
+plt.legend()
+plt.grid()
+plt.show()

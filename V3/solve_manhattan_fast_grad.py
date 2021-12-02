@@ -63,7 +63,6 @@ def approx_gradient(tau, epsilon):
                      manhattan_game.evaluate_cost, maxIterations = 1e6,
                      maxError=epsilon, returnHist=False)
     distribution_history.append(approx_y)
-
     pop_distribution = np.sum(approx_y, axis=1) # size TxS
     constraint_arr = np.ones(pop_distribution.shape) * constrained_value
     gradient = pop_distribution - constraint_arr # gradient has size T x 
