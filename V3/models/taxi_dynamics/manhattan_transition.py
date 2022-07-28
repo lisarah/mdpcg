@@ -67,6 +67,154 @@ def random_distribution(M, constraint_val):
     return p0
 
 
+def transition_kernel_pick_ups(epsilon, transitions_list):
+    """
+
+    Parameters
+    ----------
+    epsilon : float between (0, 1)
+        when choosing to go to neighboring state, probability of not 
+        getting there.
+    transitions_list : list
+        Each element of transition_list is t_i.
+        t_i: dict: {z_i: t_{ij}}
+            z_i =  origin_zone_ind
+            t_ij = dict: {dest: p_{ij}}
+                dest = (destination zone ind, time)
+                p_{ij} = probability of going to dest from z_i. 
+    
+
+    Returns
+    -------
+    forward_transitions: list, [d_i] for all i \in [T]
+        d_i = dict, {state_j: t_ij} for all state_j \in [S]
+            t_ij = dict, {a_k: P_ijk} for all a_k \in [A_j]
+                P_ijk = tuple: (states_list, transitions_list).
+                    states_list = list of states (zone_ind, queue_level) to 
+                                  transition to
+                    transitions_list = list of transition probabilities 
+                                       for these states 
+                                       at action a_k from state s_j and time i
+                                       
+                             
+    backward_transitions: list, [d_t] for all t \in [T]
+        d_t = dict, {state_j: (sa_list, probability_list)} for all j \in [S]
+            sa_list = [(s_i, a_k)] for all i \in [N_j], k \in [A_j]
+                s_i = (z_i, q_level)
+            probability_list = [P_jikt], 
+                P_ijkt is the probability of transitioning to state j by
+                taking state-action (s_i, a_k) at time t. 
+
+    """
+    forward_transitions = []
+    backward_transitions = []
+    max_action = manhattan.most_neighbors(manhattan.zone_neighbors)
+    # legacy: last action is trying to pick up a rider
+    for t_i in transitions_list:
+        forward_transitions.append({})
+        backward_transitions.append({})
+        for z_i, t_ij in t_i.items():
+            o_ind = (z_i, 0) # queue level is 0
+            if o_ind not in forward_transitions[-1]:
+                forward_transitions[-1][o_ind] = {}
+            if len(t_ij) == 0: # no rides recorded from z_i at time t_i
+            # if no rides are recorded, go back to origin with probability 1.
+                forward_transitions[-1][o_ind][max_action] = ([o_ind], [1])
+                if o_ind not in backward_transitions[-1]:
+                    backward_transitions[-1][o_ind] = ([(o_ind, max_action)], [1])
+                else:
+                    backward_transitions[-1][o_ind][0].append((o_ind, max_action))
+                    backward_transitions[-1][o_ind][1].append(1)
+            a_ind = -1
+            total_neighbors = len(manhattan.zone_neighbors[z_i])
+            for n_j in manhattan.zone_neighbors[z_i]:  
+                # insert actions in forward_transitions
+                a_ind += 1
+                n_state = (n_j, 0)
+                forward_transitions[-1][o_ind][a_ind] = ([n_state], [1])
+                # insert actions in backward_transtiions
+                if n_state not in backward_transitions[-1]:
+                    backward_transitions[-1][n_state] = ([(o_ind, a_ind)], [1])
+                else: 
+                    backward_transitions[-1][n_state][0].append((o_ind, a_ind))
+                    backward_transitions[-1][n_state][1].append(1)
+                    
+                if epsilon > 0 and total_neighbors > 1:
+                    forward_transitions[-1][o_ind][a_ind][1][-1] += -epsilon
+                    backward_transitions[-1][n_state][1][-1] += -epsilon
+                    for n_k in manhattan.zone_neighbors[z_i]:
+                        other_neighbor_state = (n_k, 0)
+                        if n_k != n_j:
+                            forward_transitions[-1][o_ind][a_ind][0].append(
+                               other_neighbor_state )
+                            forward_transitions[-1][o_ind][a_ind][1].append(
+                                epsilon/(total_neighbors-1))
+                            if other_neighbor_state in backward_transitions[-1]:
+                                backward_transitions[-1][other_neighbor_state][0].append(
+                                    (o_ind, a_ind))
+                                backward_transitions[-1][other_neighbor_state][1].append(
+                                    epsilon / (total_neighbors-1) )
+                            else:
+                                backward_transitions[-1][other_neighbor_state] = (
+                                    [(o_ind, a_ind)], [epsilon / (total_neighbors-1)])
+                            if other_neighbor_state == (79, 0):
+                                print(f' found {o_ind} -> {other_neighbor_state} in neighbor loop 1')
+                                
+               
+            for dest, p_ij in t_ij.items():
+                if dest == (79, 0) and o_ind == (79,1):
+                    print(f' found {o_ind} -> {dest}')
+                # build forward transitions
+                if max_action not in forward_transitions[-1][o_ind]:
+                    forward_transitions[-1][o_ind][max_action] =  ([],[])
+                forward_transitions[-1][o_ind][max_action][0].append(dest)
+                forward_transitions[-1][o_ind][max_action][1].append(p_ij)
+                orig_s = dest
+                while orig_s not in forward_transitions[-1] and orig_s[1] > 0:
+                    dest_s = (orig_s[0], orig_s[1] - 1)
+                    forward_transitions[-1][orig_s] = {
+                        max_action: ([dest_s], [1])} # drops queue level with probability 1
+                    orig_s = dest_s
+                    
+                
+                # build backward transitions:
+                # add the first transition from picking up a driver
+                if dest not in backward_transitions[-1]:
+                    backward_transitions[-1][dest] = ([],[])
+                backward_transitions[-1][dest][0].append((o_ind, max_action))
+                backward_transitions[-1][dest][1].append(p_ij)
+                if dest == (79, 0) and o_ind == (79,1):
+                        print(f' found {o_ind} -> {dest} outside while loop')
+                        
+                    
+                # add subsequent transitions from dropping queues
+                queue_level = dest[1] - 1
+                origin = dest
+                dest = (dest[0], queue_level)
+                if dest not in backward_transitions[-1]:
+                    backward_transitions[-1][dest] = ([],[])
+                    
+                while queue_level >= 0 and \
+                    (origin, max_action) not in backward_transitions[-1][dest][0]:
+
+                    backward_transitions[-1][dest][0].append(
+                        (origin, max_action))
+                    backward_transitions[-1][dest][1].append(int(1))
+                    if dest == (79, 0) and origin == (79,1):
+                        print(f' found {origin} -> {dest} at {transitions_list.index(t_i)}')
+                        print(f' value added is {backward_transitions[-1][dest][1][-1]}')
+                    origin = dest   
+                    queue_level += -1
+                    dest = (origin[0], queue_level)
+                    if dest not in backward_transitions[-1]:
+                        backward_transitions[-1][dest] = ([],[])
+                    
+                    
+    print(f'final backward transition value {backward_transitions[-1][(79,0)][1][3]}  ')
+    print(f'origin state-action is {backward_transitions[-1][(79,0)][0][3]}')            
+    return forward_transitions, backward_transitions
+
+
 def transition_kernel(T, epsilon):
     """ Return a  4 dimensional transition kernel for Manhattan's MDP dynamics.
     
