@@ -42,6 +42,7 @@ def demand_rate(file, Timesteps, States):
           state s and time t.
     """
     demand_array = pd.read_csv(file, header=0).values
+    print(len(demand_array))
     demand_rate = []
     for t in range(Timesteps):
         demand_rate.append([sum(demand_array[s, t*States:(t+1)*States]) 
@@ -53,7 +54,78 @@ def demand_rate(file, Timesteps, States):
 #     """
 #     pd.read_csv(file, header=0).values
 #     return 10
-       
+def congestion_cost_dict(ride_demand, forward_trans, avg_trip_dist, epsilon=0):
+    """ Generate the congestion cost vector ell_{tsa} in dictionary form.
+    Each ell_{tsa} = R_{tsa} y_{tsa} + C_{tsa}
+    
+    
+    Input:
+        rider_demand: a list of length S with the rider demand in each state
+        forward_trans: a list of transition dynamics.
+        avg_trip_dist: a list of average trip distance, indexed by state ind.
+    Output:
+        cost_list: [c_t] t \in [T] for each time step.
+        c_t: dict, {(stat_j, a_k): (R_tjk, C_tjk)} 
+        R_tjk: linear part of ell at time t state j action a_k
+        C: constant part of ell at time t state j action a_k
+    """      
+    cost_list = []
+    T = len(forward_trans)
+    params = congestion_parameters()
+    pu_action = manhattan.most_neighbors(manhattan.zone_neighbors)
+    truncated_neighbors = manhattan.zone_neighbors.copy()
+    truncated_neighbors.pop(153)
+    truncated_neighbors.pop(194)
+    truncated_neighbors.pop(202)
+    state_ind  = manhattan.zone_to_state(truncated_neighbors)
+    zone_geography = geography.get_zone_locations('Manhattan')
+    for t in range(T):
+        cost_list.append({})
+        cost_t = cost_list[-1]
+        states = list(forward_trans[t].keys())
+        for z_j in states:
+            if z_j[1] > 0:
+                C_tjk = 0
+                R_tjk = epsilon
+            else: # original states, queue level = 0
+                actions = list(forward_trans[t][z_j].keys())
+                for a in actions:
+                    if a == pu_action:
+                        # temp solution for now, fix this by fixing the data
+                        # files for ride demand and average trip distance
+                        if z_j[0] in [153, 194, 202]:
+                            R_tjk = 1
+                            C_tjk = 1
+                        else:
+                            s_ind = state_ind[z_j[0]]
+                            # print(f' s_ind {s_ind} at zone ind {z_j[0]}')
+                            m_pick_up = (params.base_rate + params.rate_mi * 
+                                     avg_trip_dist[t][s_ind] * _km_to_mi ) 
+                            m_pick_up = max([7, m_pick_up])
+                            R_tjk = m_pick_up / (3*ride_demand[t][s_ind]/31)
+                            C_tjk = (-m_pick_up  + params.k * 
+                                   avg_trip_dist[t][s_ind] * _km_to_mi)
+                    # going to neighbor        
+                    elif len(forward_trans[t][z_j][a][0]) > 0: 
+                    
+                        # print(f'zone index {z_j}, action index {a}')
+                        # print(f'at current transition {forward_trans[t][z_j][a]}')
+                        n_zone = forward_trans[t][z_j][a][0][0][0]
+                        # print(forward_trans[t][z_j][a])
+                        s_latlon = zone_geography[n_zone]
+                        n_latlon = zone_geography[n_zone]
+                        # haversine returns distance between two lat-lon tuples in km.
+                        # 0.621371 converts km to mi.
+                        C_tjk = (params.k * haversine(s_latlon, n_latlon) * 
+                                      _km_to_mi) 
+                        R_tjk = epsilon # indedpendent of distance
+                    else:
+                        R_tjk = 9999999
+                        C_tjk = 9999999
+                    cost_t[(z_j, a)] = (R_tjk, C_tjk)
+    return cost_list
+
+
 def congestion_cost(ride_demand, T ,S, A, avg_trip_dist, epsilon = 0):
     """ Generate the congestion cost vector ell_{tsa}.
     Each ell_{tsa} = R_{tsa} y_{tsa} + C_{tsa}

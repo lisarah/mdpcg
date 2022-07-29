@@ -4,34 +4,18 @@ Created on Tue Jul 26 13:47:27 2022
 
 @author: Sarah Li
 """
-import models.taxi_dynamics.manhattan_transition as m_trans
 import models.taxi_dynamics.manhattan_neighbors as m_neighs
-import pickle
 import numpy as np
-
-
-directory = 'C:/Users/craba/Desktop/code/mdpcg/V3/' 
-trips_filename = directory+'models/manhattan_transitions.pickle'
+import models.queued_mdp_game as game
 
 
 
-class quad_game:
-    
-    def __init__(self, strictly_convex = True):
-        trips_file = open(trips_filename, 'rb')
-        m_transitions = pickle.load(trips_file)
-        for transition in m_transitions:
-            transition.pop(103)
-            transition.pop(104)
-            transition.pop(105)
-        trips_file.close()
-        self.forward_P, self.backward_P = m_trans.transition_kernel_pick_ups(
-            0.01, m_transitions)
-        self.transition_data = m_transitions
-    
+            
+mass = 100
+manhattan_game = game.queue_game(mass, 0.1)
 
-manhattan_game = quad_game()
 
+#%% Test Transition dynamics %%%
 # test queued game: 
 forward_P = manhattan_game.forward_P
 backward_P = manhattan_game.backward_P
@@ -62,12 +46,28 @@ for tup in forward_P[check_ind].keys():
     assert pu_action in forward_P[check_ind][tup].keys(), \
         f'{pu_action} not in {forward_P[check_ind][tup].keys()} at tuple {tup}, ' \
         f'at t = {check_ind}'
-    
-    # sum of probabilities is 1 for each state action:
-    dests =  forward_P[check_ind][tup][pu_action]
-    for dest_state in dests[0]:
-        assert dest_state in forward_P[check_ind].keys(), f'{dest_state} not in state list'
-    assert round(sum(dests[1]), 5) == 1, f'transitions for {tup} to {sum(dests[1])}'
+        
+    # assert all other actions correspond to going to some neighbor
+    for a_ind in forward_P[check_ind][tup].keys():
+        if a_ind != pu_action:
+            neighbors, probs = forward_P[check_ind][tup][a_ind] 
+            # print(f' tup is {tup} action is {a_ind}')
+            cur_neighbor = m_neighs.zone_neighbors[tup[0]][a_ind]
+            assert cur_neighbor == neighbors[0][0], \
+                f' at state {tup}, neighbor {cur_neighbor} is not {neighbors[0][0]} '
+        # sum of probabilities is 1 for each state action:
+        dests =  forward_P[check_ind][tup][a_ind]
+        assert round(sum(dests[1]), 5) == 1, \
+            f'transitions for {tup} sums to {sum(dests[1])} != 1'
+        # check that all destination states are states and neighbors
+        for dest_state in dests[0]:
+            assert dest_state in forward_P[check_ind].keys(), \
+            f'{dest_state} not in state list'
+            if a_ind != pu_action:
+                assert dest_state[0] in m_neighs.zone_neighbors[tup[0]], \
+                f'at {tup[0]}, destination {dest_state[0]} not in ' \
+                f'neighbor list {m_neighs.zone_neighbors[tup[0]]}'
+# test for all other actions:
     
 print('all tests for forward transitions passed')
 
@@ -89,4 +89,71 @@ for dest, orig in backward_P[check_ind].items():
         f'{orig[1][i]} != {forward_probability} at time {check_ind}'
 print('all tests for backward transition passed')
     
+
+# testing random trips are stored for each file. 
+
+
+
+#%% Test the initial densities %%#
+
+# np.random.seed(111)
+initial_density = manhattan_game.random_initial_density()
+# check that at each time, density sums to 1
+for t in range(len(initial_density)):
+    density_t = initial_density[t]
+    density_sum = sum([sum([density_t[(s,a)] 
+                            for a in manhattan_game.action_dict[s]]) 
+                for s in manhattan_game.state_list])
+    assert round(density_sum, 5) == 1, f' density at time {t} is {density_sum}'
+
+
+# check that forward propagation works too: 
+total_sample = 1000
+for sample in range(total_sample):
+    cur_state_ind = np.random.choice([i for i in range(len(manhattan_game.state_list))])
+    cur_state = manhattan_game.state_list[cur_state_ind]
+    cur_t = np.random.randint(1, 11)
+    cur_transition = forward_P[cur_t-1]
+    last_density = initial_density[cur_t-1]
+    cur_density = sum([initial_density[cur_t][(cur_state,a)] 
+                       for a in manhattan_game.action_dict[cur_state]])
+    test_density = 0
+    for s in manhattan_game.state_list:
+        for a in manhattan_game.action_dict[s]:
+            if cur_state in cur_transition[s][a][0]:
+                cur_ind = cur_transition[s][a][0].index(cur_state)
+                test_density += last_density[(s,a)] * cur_transition[s][a][1][cur_ind]
+                # if cur_state == (127, 1) and cur_t == 4:
+                #     print(f'{s} goes to {cur_state} with p = {round(cur_transition[s][a][1][cur_ind],2)}'
+                #           f'and density is  {last_density[(s,a)]}')
+
+    assert round(test_density - cur_density, 3) == 0, \
+    f'density at s = {cur_state}, t= {cur_t} does not match: ' \
+    f'{test_density} != {cur_density}'
+print('all tests for density transition passed')
+ 
+
+
+#%% Test cost functions %%#
+obj = manhattan_game.get_potential(initial_density)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -45,7 +45,7 @@ zone_neighbors = {
 	148: [45, 79, 144, 232],
 	151: [24, 43, 238],
 	152: [42, 116, 166],
-   153: [128, 999],
+    153: [128, 999],
 	158: [68, 125, 246, 249],
 	161: [162, 163, 164, 170, 230],
 	162: [161, 163, 170, 229, 233, 237],
@@ -98,6 +98,9 @@ def zone_to_state(neighbors_dict):
     new_keys = {}
     s_ind = 0
     for state in neighbors_dict.keys():
+        # if state in [153, 194, 202]: 
+        #     # s_ind += 1
+        #     continue
         new_keys[state] = s_ind
         s_ind +=1
     return new_keys
