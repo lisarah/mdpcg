@@ -104,7 +104,7 @@ for t in range(len(initial_density)):
     density_sum = sum([sum([density_t[(s,a)] 
                             for a in manhattan_game.action_dict[s]]) 
                 for s in manhattan_game.state_list])
-    assert round(density_sum, 5) == 1, f' density at time {t} is {density_sum}'
+    assert round(density_sum, 5) == mass, f' density at time {t} is {density_sum}'
 
 
 # check that forward propagation works too: 

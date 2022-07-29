@@ -72,7 +72,6 @@ class queue_game:
         density_sum = sum(cur_density.values())
         scaling = self.mass / density_sum
         cur_density = {s: d*scaling for s, d in cur_density.items()}
-        assert round(sum(cur_density.values()), 5) == 1, f' in game code density at time 0 is {sum(cur_density.values())}'
         for t in range(len(self.forward_P)):
             initial_density.append({})
             for s in cur_density.keys():
