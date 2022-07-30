@@ -20,7 +20,7 @@ mpl.rc('legend', fontsize='small')
 
 
 directory = 'C:/Users/craba/Desktop/code/mdpcg/V3/' 
-trips_filename = directory+'models/manhattan_trips_jan.pickle'
+trips_filename = directory+'models/manhattan_trips.pickle'
 trips_file = open(trips_filename, 'rb')
 trips = pickle.load(trips_file)
 trips_file.close()
@@ -103,7 +103,7 @@ key = tuple(zone_ind, trip_time):
         - trip time - from 1 - 5, each corresponding to a 15 min increment
 value = probability of arriving in zone_ind with trip_time 
 """
-open_file = open('models/manhattan_transitions_jan.pickle', 'wb')
+open_file = open('models/manhattan_transitions.pickle', 'wb')
 pickle.dump(transitions, open_file)
 open_file.close()
 # processed_destinations = [t.zone_pu for t in processed_trips]

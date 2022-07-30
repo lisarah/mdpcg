@@ -12,7 +12,7 @@ import numpy as np
 
 
 directory = 'C:/Users/craba/Desktop/code/mdpcg/V3/' 
-trips_filename = directory+'models/manhattan_transitions.pickle'
+trips_filename = directory+'models/manhattan_transitions_jan.pickle'
 
 
 class queue_game:
@@ -60,7 +60,7 @@ class queue_game:
         for t in range(len(self.costs)):
             grad.append({})
             for st in self.costs[t].keys():
-                grad[st] = self.costs[t][st][0]*density[t][st] + \
+                grad[-1][st] = self.costs[t][st][0]*density[t][st] + \
                     self.costs[t][st][1] 
         return grad
 

@@ -7,8 +7,7 @@ Created on Tue Jul 26 13:47:27 2022
 import models.taxi_dynamics.manhattan_neighbors as m_neighs
 import numpy as np
 import models.queued_mdp_game as game
-
-
+import algorithm.dynamic_programming as dp
 
             
 mass = 100
@@ -108,7 +107,7 @@ for t in range(len(initial_density)):
 
 
 # check that forward propagation works too: 
-total_sample = 1000
+total_sample = 100
 for sample in range(total_sample):
     cur_state_ind = np.random.choice([i for i in range(len(manhattan_game.state_list))])
     cur_state = manhattan_game.state_list[cur_state_ind]
@@ -136,7 +135,8 @@ print('all tests for density transition passed')
 
 #%% Test cost functions %%#
 obj = manhattan_game.get_potential(initial_density)
-
+grad = manhattan_game.get_gradient(initial_density)
+V, pol = dp.value_iteration_dict(grad, forward_P)
 
 
 

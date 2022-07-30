@@ -10,6 +10,61 @@ Dynamic programming methods:
 import numpy as np
 
 
+def value_iteration_dict(cost, P, is_max=False):
+    """ Value iteration with max/min objectives for a finite time horizon, 
+        total cost MDP whose transition and costs are dictionaries
+    
+    Inputs:
+        cost: list. [d_i] for i = 0...T-1
+            d_i: dict. {(s,a): C_isa} for s in States, a in Actions
+                C_isa: float. The cost of (s,a) at time i.
+        
+        P: list. [d_t] for i = 0...T-1
+            d_t: dict. {s: P_ts} for s in States
+                P_ts: dict. {a: P_tsa} for a in Actions 
+                    P_tsa: (s_list, p_list).
+                        s_list: List [s_j] s_j in [Neighbors of s]
+                            s_j: tuple(int, int). (zone_ind, queue_level)
+                        p_list: List [p_tsaj] 
+                            P_tsaj: float. probability of transitioning 
+                                into s_j from (t,s,a)
+        is_max: bool. True if maximizing reward. False if minimizing cost.
+    Returns:
+        V: list. [V_t] for t in 0 ... T-1.
+            V_t: dict. {s: V_ts} for s in States. 
+                V_ts: float. The cost to go of state s at time t. 
+        pol: list. [pol_t] for t in 0 ... T-1
+            pol_t: dict. {s: pol_ts} for s in States.
+                pol_ts: int in Actions. Optimal policy of state s at time t.   
+    """
+    T = len(P)
+    V = []
+    pol = []
+    for rev_t in range(T):
+        t = T - rev_t - 1
+        V.append({s: -1 for s in P[t].keys()})
+        pol.append({s: -1 for s in P[t].keys()})
+
+        for s in P[t].keys():
+            P_ts = P[t][s]
+            if t == T-1:
+                Q = {cost[t][(s,a)]:a  for a in P_ts.keys()}
+                
+            else:
+                Q = {}
+                for a in P[t][s].keys():
+                    Q_sa = cost[t][(s,a)] + sum([
+                        P_ts[a][1][i] * V[-1][P_ts[a][0][i]] 
+                        for i in range(len(P_ts[a][0]))])
+                    Q[Q_sa] = a
+            V[-1][s] = max(Q.keys()) if is_max else min(Q.keys())
+            pol[-1][s] = Q[V[-1][s]]  
+            
+    V.reverse()
+    pol.reverse()
+    return V, pol
+ 
+    
 def value_iteration(cost, p0, P, isMax = False):
     """ Value iteration with max/min objectives for a finite time horizon, total
     cost MDP.
@@ -69,3 +124,4 @@ def value_iteration(cost, p0, P, isMax = False):
         trajectory[:,t] =  np.einsum('ijk,jk',P[t,:,:,:],x);
 
     return V, xNext; 
+

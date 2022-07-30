@@ -131,6 +131,8 @@ def transition_kernel_dict(epsilon, transitions_list):
     for t_i in transitions_list:
         forward_transitions.append({s:{a:([],[]) for a in action_dict[s]} 
                                     for s in state_list})
+        # if transitions_list.index(t_i) == 0:
+        #     print(forward_transitions[-1].keys())
         backward_transitions.append({s: ([], []) for s in state_list})
         
         # action for queue_level > 0 is just to drop

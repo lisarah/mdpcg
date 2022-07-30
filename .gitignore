@@ -2,10 +2,12 @@ temp.py
 testFile.py
 *yellow_tripdata_*
 */__pycache__/*
-*/ipynb_checkpoints/*
-__pycache__
+*/.ipynb_checkpoints/*
+*/.vscode/*
+*.pickle
 *html
 *npy
 *.pyc
 *.zip
 *.mp4
+
