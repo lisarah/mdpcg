@@ -12,7 +12,7 @@ import numpy as np
 
 
 directory = 'C:/Users/craba/Desktop/code/mdpcg/V3/' 
-trips_filename = directory+'models/manhattan_transitions_jan.pickle'
+trips_filename = directory+'models/manhattan_transitions.pickle'
 
 
 class queue_game:
@@ -32,7 +32,7 @@ class queue_game:
         self.state_list = mdp[2]
         self.action_dict = mdp[3]
         self.sa_list = mdp[4]
-        
+        self.t0_density = self.random_t0_density()
         # self.forward_P, self.backward_P = m_trans.transition_kernel_pick_ups(
         #     epsilon, m_transitions)
         T = 12
@@ -63,38 +63,37 @@ class queue_game:
                 grad[-1][st] = self.costs[t][st][0]*density[t][st] + \
                     self.costs[t][st][1] 
         return grad
-
-    def random_initial_density(self):
-        initial_density = []
+    
+    def random_t0_density(self):
+        t0_density = {s: np.random.random() 
+                      for s in self.state_list}
+        density_sum = sum(t0_density.values())
+        scaling = self.mass / density_sum
+        t0_density = {s: d*scaling for s, d in t0_density.items()}
+        return t0_density
+    
+    def random_density(self):
+        initial_s_density = [self.t0_density]
+        initial_sa_density = []
         # at time 0, randomly generate a density that satisfies
         # transition dynamics
-        cur_density = {s: np.random.random() for s in self.state_list}
-        density_sum = sum(cur_density.values())
-        scaling = self.mass / density_sum
-        cur_density = {s: d*scaling for s, d in cur_density.items()}
         for t in range(len(self.forward_P)):
-            initial_density.append({})
-            for s in cur_density.keys():
+            s_density = initial_s_density[-1]
+            initial_sa_density.append({})
+            sa_density = initial_sa_density[-1]
+            for s in s_density.keys():
                 # print(f' current state {s} t = {t}')
-                policy = [np.random.random() for _ in self.action_dict[s]]
+                policy = [np.random.random() 
+                          for _ in self.action_dict[s]]
                 policy_scale = sum(policy)
                 policy = [p / policy_scale for p in policy]
-                assert round(sum(policy), 5) == 1, f'policy sums to {round(sum(policy), 5)}'
                 for a_ind in range(len(self.action_dict[s])):
-                    # print(f'is {s} in density list '
-                    #       f'{s in cur_density} at t = {t}')
-                    initial_density[-1][(s,  self.action_dict[s][a_ind])] = \
-                        policy[a_ind] * cur_density[s]
-                sa_sum = sum([initial_density[-1][(s, a)] for a in self.action_dict[s]])
-                assert round(sa_sum - cur_density[s], 5) == 0, \
-                    f' at state {s}, sum {sa_sum} != {cur_density[s]}'
-            # assert round(sum(initial_density[-1].values()), 5) == 1, \
-            #     f' in random_initial: density at time 0 is {sum(initial_density[-1].values())}'
-
-            cur_density = self.propagate(initial_density[-1], t)
-            # if t==4:
-            #     print(f'current density {cur_density[(127, 1)]}')
-        return initial_density
+                    cur_act = self.action_dict[s][a_ind]
+                    sa_density[(s,cur_act) ] = \
+                        policy[a_ind] * s_density[s]
+            initial_s_density.append(
+                self.propagate(sa_density, t))
+        return initial_sa_density
        
     def get_probability(self, sa_density, t):
         p_density = {}

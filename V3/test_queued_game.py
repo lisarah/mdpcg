@@ -96,7 +96,7 @@ print('all tests for backward transition passed')
 #%% Test the initial densities %%#
 
 # np.random.seed(111)
-initial_density = manhattan_game.random_initial_density()
+initial_density = manhattan_game.random_density()
 # check that at each time, density sums to 1
 for t in range(len(initial_density)):
     density_t = initial_density[t]
@@ -138,9 +138,26 @@ obj = manhattan_game.get_potential(initial_density)
 grad = manhattan_game.get_gradient(initial_density)
 V, pol = dp.value_iteration_dict(grad, forward_P)
 
+next_sa, next_s = dp.density_retrieval(pol, manhattan_game)
+
+print(f'random_objective = {obj}')
+print(f'new_objective    = {manhattan_game.get_potential(next_sa)}')
+
+# check that at each time, density sums to 1
+for t in range(len(next_sa)):
+    density_t = next_sa[t]
+    density_sum = sum([sum([density_t[(s,a)] 
+                            for a in manhattan_game.action_dict[s]]) 
+                for s in manhattan_game.state_list])
+    assert round(density_sum, 5) == mass, f' density at time {t} is {density_sum}'
 
 
+density_sum = sum([manhattan_game.t0_density[s] 
+                   for s in manhattan_game.state_list])
+assert round(density_sum, 5) == mass, f' density at time {t} is {density_sum}'
 
+    
+    
 
 
 

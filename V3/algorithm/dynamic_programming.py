@@ -8,7 +8,7 @@ Dynamic programming methods:
 @author: Sarah Li
 """
 import numpy as np
-
+import itertools
 
 def value_iteration_dict(cost, P, is_max=False):
     """ Value iteration with max/min objectives for a finite time horizon, 
@@ -64,7 +64,37 @@ def value_iteration_dict(cost, P, is_max=False):
     pol.reverse()
     return V, pol
  
+def density_retrieval(pol, game):
+    """ Given initial state distribution and a finite horizion dynamics and
+        policy, determine the corresponding station-action density.
     
+    Inputs:
+        pol: list. [pol_i] for i = 0...T-1
+            pol_i: dict. {s: a} for all s in States
+                a = optimal policy to take in state s at time i.
+        game: a queued_game object.
+        
+    Returns:
+        sa_density: list. [d_i] for t= 0...T-1
+            d_i: dict. {s: d_{0sa}} for s in States. 
+            
+    """
+    T = len(pol)
+    sa_density = []
+    s_density = [game.t0_density]
+    for t in range(T):
+        # d_sum = sum([s_density[-1][s] for s in game.state_list])
+        # assert round(d_sum, 5) == 100, f' density at time {t} is {d_sum}'
+        sa_density.append({sa: 0  for sa in game.sa_list})
+        for s in game.state_list:
+            sa_density[-1][(s, pol[t][s])] = s_density[t][s]
+        # sa_sum = sum([sum([sa_density[-1][(s,a)] for a in game.action_dict[s]]) 
+        #               for s in game.state_list])
+        # assert round(sa_sum, 5) == 100, f' density at time {t} is {sa_sum}'
+        s_density.append(game.propagate(sa_density[t], t)) 
+    
+    return sa_density, s_density  
+
 def value_iteration(cost, p0, P, isMax = False):
     """ Value iteration with max/min objectives for a finite time horizon, total
     cost MDP.
