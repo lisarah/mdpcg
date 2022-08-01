@@ -110,21 +110,17 @@ def congestion_cost_dict(ride_demand, forward_trans, avg_trip_dist, epsilon=0):
                                    avg_trip_dist[t][s_ind] * _km_to_mi)
                     # going to neighbor        
                     elif len(forward_trans[t][z_j][a][0]) > 0: 
-                    
-                        # print(f'zone index {z_j}, action index {a}')
-                        # print(f'at current transition {forward_trans[t][z_j][a]}')
                         n_zone = forward_trans[t][z_j][a][0][0][0]
-                        # print(forward_trans[t][z_j][a])
                         s_latlon = zone_geography[n_zone]
                         n_latlon = zone_geography[n_zone]
-                        # haversine returns distance between two lat-lon tuples in km.
-                        # 0.621371 converts km to mi.
+                        # haversine returns distance between 
+                        # two lat-lon tuples in km. 0.621371 converts km to mi.
                         C_tjk = (params.k * haversine(s_latlon, n_latlon) * 
                                       _km_to_mi) 
                         R_tjk = epsilon # indedpendent of distance
                     else:
-                        R_tjk = 9999999
-                        C_tjk = 9999999
+                        R_tjk = 999999999
+                        C_tjk = 999999999
                     cost_t[(z_j, a)] = (R_tjk, C_tjk)
     return cost_list
 

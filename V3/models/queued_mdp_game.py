@@ -12,7 +12,7 @@ import numpy as np
 
 
 directory = 'C:/Users/craba/Desktop/code/mdpcg/V3/' 
-trips_filename = directory+'models/manhattan_transitions.pickle'
+trips_filename = directory+'models/manhattan_transitions_jan.pickle'
 
 
 class queue_game:
@@ -32,6 +32,8 @@ class queue_game:
         self.state_list = mdp[2]
         self.action_dict = mdp[3]
         self.sa_list = mdp[4]
+        self.z_list = [s[0] for s in self.state_list]
+        self.z_list = list(set(self.z_list)) # get unique values from z_list
         self.t0_density = self.random_t0_density()
         # self.forward_P, self.backward_P = m_trans.transition_kernel_pick_ups(
         #     epsilon, m_transitions)
@@ -120,9 +122,26 @@ class queue_game:
             #         print(f'densities at {orig_s[i]} is {sa_density[orig_s[i]]}')
         # print(f' at time {t}, is (88, 5) in next_density {(88,5) in next_density}')
         return next_density
-                
-                
-                
+
+    def get_zone_densities(self, sa_density):
+        """ Get the total density in each zone 
+            (collapse queue levels and actions).
+        
+        Input:
+            sa_density: list. [d_i] for i = 0...T-1
+                d_i: dict. {sa: d_isa} for sa in State x Actions.
+                    d_isa: float. Density in state-action sa at time i
+                    States: (zone_ind, queue_level)
+        Output:
+            z_density: list. [z_i] for i = 0...T-1
+                z_i: dict. {z_ind: d_iz} for z_ind in Zone inds.
+                    d_iz: float. Density in zone  z_ind at time t.
+        """
+        z_density = [{z: 0 for z in self.z_list} for _ in sa_density]
+        for i in range(len(sa_density)):
+            for sa, d_isa in sa_density[i].items():
+                z_density[i][sa[0][0]] += d_isa
+        return z_density                
                 
                 
                 

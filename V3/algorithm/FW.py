@@ -31,8 +31,35 @@ def localSubproblem(gradient, p0, P):
     V = np.min(gradient);
     policy = np.argmin(gradient);
     xNext[int(policy)] = p0;
-    return V, xNext;     
- 
+    return V, xNext; 
+    
+def FW_dict(game, max_error, max_iterations):
+    
+    y_list = [game.random_density()]
+    obj_list = [game.get_potential(y_list[0])]
+    grad_list = [game.get_gradient(y_list[0])]
+    k = 1
+    err = max_error *2
+    while k <= max_iterations and  abs(err) > max_error:
+        y_k = y_list[-1]
+        obj_list.append(game.get_potential(y_k))
+        grad_list.append(game.get_gradient(y_k))
+        V_k, pol_k = dp.value_iteration_dict(grad_list[-1], game.forward_P)
+        sa_k, s_k = dp.density_retrieval(pol_k, game)
+        step = 2 / (1+k)
+        next_y = [{sa: step*d_k[sa] + (1-step)*y_k[sa] for sa in y_k.keys()}
+                  for d_k, y_k in zip(sa_k, y_list[-1])]
+        y_list.append(next_y)
+        k += 1
+        # compute error
+        err = 0
+        for g_t, y_1t, y_2t in zip(grad_list[-1], y_list[-1], y_list[-2]):
+            err += sum([g_t[sa] * (y_1t[sa] - y_2t[sa]) for sa in g_t.keys()])
+        print(f'error is {err}')
+    print(f'FW: iterated {k} steps')
+    return y_list, obj_list
+    
+
 def FW(x0, p0, P, gradF, 
        isMax=False, 
        maxError = 1e-1, 
