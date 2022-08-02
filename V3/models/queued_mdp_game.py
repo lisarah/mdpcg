@@ -35,6 +35,7 @@ class queue_game:
         self.z_list = [s[0] for s in self.state_list]
         self.z_list = list(set(self.z_list)) # get unique values from z_list
         self.t0_density = self.random_t0_density()
+        self.tolls = None
         # self.forward_P, self.backward_P = m_trans.transition_kernel_pick_ups(
         #     epsilon, m_transitions)
         T = 12
@@ -48,14 +49,31 @@ class queue_game:
             header=None).values
         
         self.costs = m_cost.congestion_cost_dict(
-            demand_rate, self.forward_P, self.avg_dist, epsilon=1e-5)
+            demand_rate, self.forward_P, self.avg_dist, epsilon=1e-3)
         self.transition_data = m_transitions
-
+        
+    def get_strong_convexity(self):
+        min_R = 100
+        for t in range(len(self.costs)):
+            min_R = min([r[0] if r[0] != 0 else 999999 
+                         for r in self.costs[t].values()] + [min_R])
+        return min_R
+    
+    
     def get_potential(self, density):
-        return sum([sum([0.5*self.costs[t][st][0] * density[t][st]**2 \
-                      + self.costs[t][st][0] * density[t][st] 
-                      for st in self.costs[t].keys()]) 
-                    for t in range(len(self.costs))]) 
+        potential_val = sum([sum([  
+            0.5*self.costs[t][st][0] * density[t][st]**2 \
+                + self.costs[t][st][0] * density[t][st] 
+                for st in self.costs[t].keys()]) 
+                for t in range(len(self.costs))]) 
+        if self.tolls is not None:
+            for zt in self.tolls.keys():
+                z_ind = zt[0]
+                t_ind = zt[1]
+                
+                potential_val += self.tolls[zt]*density[t_ind][((z_ind, 0), 7)]
+            
+        return potential_val
         
     def get_gradient(self, density):
         grad = []
@@ -64,6 +82,10 @@ class queue_game:
             for st in self.costs[t].keys():
                 grad[-1][st] = self.costs[t][st][0]*density[t][st] + \
                     self.costs[t][st][1] 
+        if self.tolls is not None:
+            for zt in self.tolls.keys():
+                grad[zt[1]][((zt[0], 0), 7)] += self.tolls[zt]
+                
         return grad
     
     def random_t0_density(self):
@@ -149,8 +171,8 @@ class queue_game:
                 
         return z_density                
                 
-                
-                
+    def update_tolls(self, tau):
+        self.tolls = tau.copy()
                 
                 
                 

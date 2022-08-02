@@ -33,9 +33,10 @@ def localSubproblem(gradient, p0, P):
     xNext[int(policy)] = p0;
     return V, xNext; 
     
-def FW_dict(game, max_error, max_iterations):
+def FW_dict(game, max_error, max_iterations, initial_density=None, verbose=True):
     
-    y_list = [game.random_density()]
+    y_list = [game.random_density() 
+              if initial_density is None else initial_density]
     obj_list = [game.get_potential(y_list[0])]
     grad_list = [game.get_gradient(y_list[0])]
     k = 1
@@ -55,7 +56,8 @@ def FW_dict(game, max_error, max_iterations):
         err = 0
         for g_t, y_1t, y_2t in zip(grad_list[-1], y_list[-1], y_list[-2]):
             err += sum([g_t[sa] * (y_1t[sa] - y_2t[sa]) for sa in g_t.keys()])
-        print(f'\r FW: error is {err} in {k} steps   ', end='')
+        if verbose:
+            print(f'\r FW: error is {err} in {k} steps   ', end='')
     print('')
     return y_list, obj_list
     

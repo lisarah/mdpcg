@@ -31,18 +31,27 @@ def inexact_pga(tau_0, approx_gradient, step_size, max_iteration = 1000,
         epsilons = [1/(k+1) for k in range(max_iteration)]
     
     tau_hist = [tau_0]
+    is_dict = True if type(tau_0) is dict else False
     gradient_hist = []
     t_start = datetime.now()
     for t in range(max_iteration):
-        if verbose and t % 100 == 0:
+        if verbose and t % 1 == 0:
             t_end = datetime.now()
             t_diff = (t_end - t_start).total_seconds()
             print(f'inexact pga ---- iteration = {t}, time = {t_diff} ----')
-            print(np.linalg.norm(tau_hist[-1], 2))
+            tau_values = tau_hist[-1]
+            if is_dict:
+                tau_values = np.array(list(tau_hist[-1].values()))  
+            print(np.linalg.norm(tau_values, 2))
+            
         gradient = approx_gradient(tau_hist[-1], epsilons[t])
         gradient_hist.append(gradient)
-        tau_next = tau_hist[-1] + step_size * gradient
-        tau_next[tau_next < 0] = 0
+        if is_dict: 
+            tau_next = {zt: max([0, tau_hist[-1][zt]+step_size*gradient[zt]])
+                        for zt in tau_hist[-1].keys() }
+        else:
+            tau_next = tau_hist[-1] + step_size * gradient
+            tau_next[tau_next < 0] = 0
         tau_hist.append(tau_next)
 
     return tau_hist, gradient_hist

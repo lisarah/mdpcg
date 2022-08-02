@@ -105,7 +105,7 @@ def congestion_cost_dict(ride_demand, forward_trans, avg_trip_dist, epsilon=0):
                             m_pick_up = (params.base_rate + params.rate_mi * 
                                      avg_trip_dist[t][s_ind] * _km_to_mi ) 
                             m_pick_up = max([7, m_pick_up])
-                            R_tjk = m_pick_up / ride_demand[t][s_ind]# / (3*ride_demand[t][s_ind]/31)
+                            R_tjk = m_pick_up / (3*ride_demand[t][s_ind]/30) # / ride_demand[t][s_ind]# 
                             # pick up is reward, so negative cost, but gas is 
                             # positive
                             C_tjk = (-m_pick_up  + params.k * 
