@@ -55,8 +55,8 @@ def FW_dict(game, max_error, max_iterations):
         err = 0
         for g_t, y_1t, y_2t in zip(grad_list[-1], y_list[-1], y_list[-2]):
             err += sum([g_t[sa] * (y_1t[sa] - y_2t[sa]) for sa in g_t.keys()])
-        print(f'error is {err}')
-    print(f'FW: iterated {k} steps')
+        print(f'\r FW: error is {err} in {k} steps   ', end='')
+    print('')
     return y_list, obj_list
     
 

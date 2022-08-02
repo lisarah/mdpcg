@@ -8,9 +8,12 @@ import models.taxi_dynamics.manhattan_neighbors as m_neighs
 import numpy as np
 import models.queued_mdp_game as game
 import algorithm.dynamic_programming as dp
+import algorithm.FW as fw
+import matplotlib.pyplot as plt
+import time
 
             
-mass = 100
+mass = 10000
 manhattan_game = game.queue_game(mass, 0.1)
 
 
@@ -89,47 +92,41 @@ for dest, orig in backward_P[check_ind].items():
 print('all tests for backward transition passed')
     
 
-# testing random trips are stored for each file. 
-
-
-
 #%% Test the initial densities %%#
-
+def test_density(d_list, mass, game):
+    
+    # check that at each time, density sums to 1
+    for t in range(len(d_list)):
+        d_sum = sum([sum([d_list[t][(s,a)] for a in game.action_dict[s]]) 
+                     for s in game.state_list])
+        assert round(d_sum, 5) == mass, f' density at time {t} is {d_sum}'
+    # check that forward propagation works too: 
+    total_sample = 100
+    for sample in range(total_sample):
+        s_ind = np.random.choice([i for i in range(len(game.state_list))])
+        cur_s = manhattan_game.state_list[s_ind]
+        cur_t = np.random.randint(1, 11)
+        cur_trans = forward_P[cur_t-1]
+        last_density = d_list[cur_t-1]
+        cur_density = sum([d_list[cur_t][(cur_s,a)] 
+                           for a in game.action_dict[cur_s]])
+        test_d = 0
+        for s in game.state_list:
+            for a in game.action_dict[s]:
+                if cur_s in cur_trans[s][a][0]:
+                    cur_ind = cur_trans[s][a][0].index(cur_s)
+                    test_d += last_density[(s,a)] * cur_trans[s][a][1][cur_ind]
+    
+        assert round(test_d - cur_density, 3) == 0, \
+        f'density at s = {cur_s}, t= {cur_t} does not match: ' \
+        f'{test_d} != {cur_density}'
+    print('all tests for density passed')
+    
+    
 # np.random.seed(111)
+print('testing for current density')
 initial_density = manhattan_game.random_density()
-# check that at each time, density sums to 1
-for t in range(len(initial_density)):
-    density_t = initial_density[t]
-    density_sum = sum([sum([density_t[(s,a)] 
-                            for a in manhattan_game.action_dict[s]]) 
-                for s in manhattan_game.state_list])
-    assert round(density_sum, 5) == mass, f' density at time {t} is {density_sum}'
-
-
-# check that forward propagation works too: 
-total_sample = 100
-for sample in range(total_sample):
-    cur_state_ind = np.random.choice([i for i in range(len(manhattan_game.state_list))])
-    cur_state = manhattan_game.state_list[cur_state_ind]
-    cur_t = np.random.randint(1, 11)
-    cur_transition = forward_P[cur_t-1]
-    last_density = initial_density[cur_t-1]
-    cur_density = sum([initial_density[cur_t][(cur_state,a)] 
-                       for a in manhattan_game.action_dict[cur_state]])
-    test_density = 0
-    for s in manhattan_game.state_list:
-        for a in manhattan_game.action_dict[s]:
-            if cur_state in cur_transition[s][a][0]:
-                cur_ind = cur_transition[s][a][0].index(cur_state)
-                test_density += last_density[(s,a)] * cur_transition[s][a][1][cur_ind]
-                # if cur_state == (127, 1) and cur_t == 4:
-                #     print(f'{s} goes to {cur_state} with p = {round(cur_transition[s][a][1][cur_ind],2)}'
-                #           f'and density is  {last_density[(s,a)]}')
-
-    assert round(test_density - cur_density, 3) == 0, \
-    f'density at s = {cur_state}, t= {cur_t} does not match: ' \
-    f'{test_density} != {cur_density}'
-print('all tests for density transition passed')
+test_density(initial_density, mass, manhattan_game)
  
 
 
@@ -143,25 +140,54 @@ next_sa, next_s = dp.density_retrieval(pol, manhattan_game)
 print(f'random_objective = {obj}')
 print(f'new_objective    = {manhattan_game.get_potential(next_sa)}')
 
-# check that at each time, density sums to 1
-for t in range(len(next_sa)):
-    density_t = next_sa[t]
-    density_sum = sum([sum([density_t[(s,a)] 
-                            for a in manhattan_game.action_dict[s]]) 
-                for s in manhattan_game.state_list])
-    assert round(density_sum, 5) == mass, f' density at time {t} is {density_sum}'
+print('testing for next state-action density')
+test_density(next_sa, mass, manhattan_game)
+print('testing for next state density')
+for t in range(len(next_s)):
+    d_sum = sum([next_s[t][s] for s in manhattan_game.state_list])
+    assert round(d_sum, 5) == mass, f' density at time {t} is {d_sum}'
+    
+# test for the maximum multiplier and minimum multiplier of the game
+max_R = 1
+min_R = 100
+for t in range(len(manhattan_game.costs)):
+    max_R = max([r[0] for r in manhattan_game.costs[t].values()] + [max_R])
+    min_R = min([r[0] if r[0] != 0 else 999999 
+                 for r in manhattan_game.costs[t].values()] + [min_R])
 
-
-density_sum = sum([manhattan_game.t0_density[s] 
-                   for s in manhattan_game.state_list])
-assert round(density_sum, 5) == mass, f' density at time {t} is {density_sum}'
+print(f' max r is {max_R}')
+print(f' min r is {min_R}')
+#%% test Frank Wolfe %%#
+begin_t = time.time()
+y_res, obj_hist = fw.FW_dict(manhattan_game, 
+                             max_error=100, max_iterations=1e3)
+end_t = time.time()
+print(f' total FW time = {end_t - begin_t}')
+plt.figure()
+plt.title('Potential value as function of algorithm iteration')
+plt.plot(obj_hist)
+plt.grid()
+plt.show()
 
     
-    
+#%% test that final density is still equal to mass %%#
+congested_zones = [161, 261, 87]
+congested_densities = []
+z_densities = manhattan_game.get_zone_densities(y_res[-1], include_queues=True)
+for t in range(len(z_densities)):
+    assert round(sum(z_densities[t].values()), 5) == mass, \
+    f'at time {t}, total densities is {round(sum(z_densities[t].values()), 5) }'
+    print(f' zone density at time {t} = {round(sum(z_densities[t].values()), 5)}')
+    c_t = {c: z_densities[t][c] for c in congested_zones}
+    congested_densities.append(c_t)
 
-
-
-
+plt.figure()
+for c in congested_zones:
+    congestion_in_t = [c_t[c] for c_t in congested_densities]
+    plt.plot(congestion_in_t, label = c)
+plt.grid()
+plt.legend()
+plt.show()
 
 
 

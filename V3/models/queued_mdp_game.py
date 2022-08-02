@@ -17,7 +17,7 @@ trips_filename = directory+'models/manhattan_transitions_jan.pickle'
 
 class queue_game:
     
-    def __init__(self, total_mass = 1, epsilon=0.01, strictly_convex = True):
+    def __init__(self, total_mass = 1, epsilon=0.1, strictly_convex = True):
         self.mass = total_mass
         trips_file = open(trips_filename, 'rb')
         m_transitions = pickle.load(trips_file)
@@ -48,7 +48,7 @@ class queue_game:
             header=None).values
         
         self.costs = m_cost.congestion_cost_dict(
-            demand_rate, self.forward_P, self.avg_dist, epsilon=1e-3)
+            demand_rate, self.forward_P, self.avg_dist, epsilon=1e-5)
         self.transition_data = m_transitions
 
     def get_potential(self, density):
@@ -123,8 +123,8 @@ class queue_game:
         # print(f' at time {t}, is (88, 5) in next_density {(88,5) in next_density}')
         return next_density
 
-    def get_zone_densities(self, sa_density):
-        """ Get the total density in each zone 
+    def get_zone_densities(self, sa_density, include_queues=False):
+        """ Get the drivers not in queue in each zone 
             (collapse queue levels and actions).
         
         Input:
@@ -132,6 +132,8 @@ class queue_game:
                 d_i: dict. {sa: d_isa} for sa in State x Actions.
                     d_isa: float. Density in state-action sa at time i
                     States: (zone_ind, queue_level)
+            include_queues: bool. True if returned density should include all
+                                 queues as well. 
         Output:
             z_density: list. [z_i] for i = 0...T-1
                 z_i: dict. {z_ind: d_iz} for z_ind in Zone inds.
@@ -140,7 +142,11 @@ class queue_game:
         z_density = [{z: 0 for z in self.z_list} for _ in sa_density]
         for i in range(len(sa_density)):
             for sa, d_isa in sa_density[i].items():
-                z_density[i][sa[0][0]] += d_isa
+                if include_queues:
+                    z_density[i][sa[0][0]] += d_isa
+                elif sa[0][1] == 0:   
+                    z_density[i][sa[0][0]] += d_isa
+                
         return z_density                
                 
                 

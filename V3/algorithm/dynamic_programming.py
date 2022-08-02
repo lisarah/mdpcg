@@ -48,14 +48,7 @@ def value_iteration_dict(cost, P, is_max=False):
         for s in P[t].keys():
             P_ts = P[t][s]
             if t == T-1:
-                # for a in P_ts.keys():
-                    # print(f' state-action {(s,a)}')
-                    # # print(f'{cost[t].keys()}')
-                    # print(f'time {t}')
-                    # print(f' cost {cost[t][(s,a)]}')
-                    
                 Q = {cost[t][(s,a)]:a  for a in P_ts.keys()}
-                
             else:
                 Q = {}
                 for a in P[t][s].keys():
