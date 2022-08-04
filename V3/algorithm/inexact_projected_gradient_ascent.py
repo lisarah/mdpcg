@@ -9,7 +9,7 @@ Implementation of inexact projected gradient ascent.
 from datetime import datetime
 import numpy as np
 
-def inexact_pga(tau_0, approx_gradient, step_size, max_iteration = 1000,
+def inexact_pga(game, tau_0, approx_gradient, step_size, max_iteration = 1000,
                 epsilons = None, verbose = False):
     """ Perform inexact gradient ascent where projection into the positive
     quadrant is performed. 
@@ -42,17 +42,22 @@ def inexact_pga(tau_0, approx_gradient, step_size, max_iteration = 1000,
             tau_values = tau_hist[-1]
             if is_dict:
                 tau_values = np.array(list(tau_hist[-1].values()))  
-            print(np.linalg.norm(tau_values, 2))
+            print(np.linalg.norm(tau_values, 1))
             
-        gradient = approx_gradient(tau_hist[-1], epsilons[t])
+        gradient = approx_gradient(game, tau_hist[-1], epsilons[t], t)
         gradient_hist.append(gradient)
+        tau_hist.append({})
         if is_dict: 
-            tau_next = {zt: max([0, tau_hist[-1][zt]+step_size*gradient[zt]])
-                        for zt in tau_hist[-1].keys() }
+            tau_hist[-1] = {zt: max([0, tau_hist[-2][zt]+step_size*gradient[zt]])
+                        for zt in tau_hist[-2].keys() }
+            # tau_hist[-1] = {zt: max([0, 2*tau_hist[-2][zt]])
+            #             for zt in tau_hist[-2].keys() }
+
         else:
-            tau_next = tau_hist[-1] + step_size * gradient
-            tau_next[tau_next < 0] = 0
-        tau_hist.append(tau_next)
+            tau_hist[-1] = tau_hist[-2] + step_size * gradient
+            tau_hist[-1][tau_hist[-1] < 0] = 0
+            
+        # tau_hist.append(tau_next)
 
     return tau_hist, gradient_hist
 

@@ -8,7 +8,6 @@ Dynamic programming methods:
 @author: Sarah Li
 """
 import numpy as np
-import itertools
 
 def value_iteration_dict(cost, P, is_max=False):
     """ Value iteration with max/min objectives for a finite time horizon, 

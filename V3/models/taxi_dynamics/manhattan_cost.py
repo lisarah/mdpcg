@@ -23,10 +23,10 @@ class congestion_parameters:
         self.base_rate = 2.55  + 4.2 # $ base rate plus 12 minutes of ride
         self.rate_mi = 1.75  # $/mi
         self.tau = 15  # $/hr 
-        self.vel = 12. # mph
-        self.fuel = 2.8 # $/gal
-        self.fuelEff = 28. # mi/gal
-        # cost constant for travelling
+        self.vel =  8 #12. # mph
+        self.fuel = 2.8 # 2.8 # $/gal
+        self.fuelEff = 20 # 28. # mi/gal
+        # cost constant for traveling
         self.k = self.tau/self.vel + self.fuel/self.fuelEff #  
         
         
@@ -71,14 +71,11 @@ def congestion_cost_dict(ride_demand, forward_trans, avg_trip_dist, epsilon=0):
     """      
     cost_list = []
     T = len(forward_trans)
+    print(f' length of forward transition is {T}')
     params = congestion_parameters()
     pu_action = manhattan.most_neighbors(manhattan.zone_neighbors)
-    truncated_neighbors = manhattan.zone_neighbors.copy()
-    truncated_neighbors.pop(153)
-    truncated_neighbors.pop(194)
-    truncated_neighbors.pop(202)
-    state_ind  = manhattan.zone_to_state(truncated_neighbors)
-    zone_geography = geography.get_zone_locations('Manhattan')
+    state_ind  = manhattan.zone_to_state(manhattan.zone_neighbors)
+    zone_geo = geography.get_zone_locations('Manhattan')
     for t in range(T):
         cost_list.append({})
         cost_t = cost_list[-1]
@@ -86,35 +83,35 @@ def congestion_cost_dict(ride_demand, forward_trans, avg_trip_dist, epsilon=0):
         for z_j in states:
             if z_j[1] > 0:
                 C_tjk = 0
-                R_tjk = epsilon
+                R_tjk = 0
                 cost_t[(z_j, pu_action)] = (R_tjk, C_tjk)
             else: # original states, queue level = 0
                 actions = list(forward_trans[t][z_j].keys())
-                # if t == 0 and z_j == (4,1):
+                # if t == 10 and z_j == (161, 0):
                 #     print(f'at {z_j} :{actions}')
                 for a in actions:
                     if a == pu_action:
-                        # temp solution for now, fix this by fixing the data
-                        # files for ride demand and average trip distance
-                        if z_j[0] in [153, 194, 202]:
-                            R_tjk = 1
-                            C_tjk = 1
-                        else:
-                            s_ind = state_ind[z_j[0]]
+                        s_ind = state_ind[z_j[0]]
+                        if ride_demand[t][s_ind] > 0:
                             # print(f' s_ind {s_ind} at zone ind {z_j[0]}')
                             m_pick_up = (params.base_rate + params.rate_mi * 
                                      avg_trip_dist[t][s_ind] * _km_to_mi ) 
                             m_pick_up = max([7, m_pick_up])
-                            R_tjk = m_pick_up / (3*ride_demand[t][s_ind]/30) # / ride_demand[t][s_ind]# 
+                            R_tjk = m_pick_up  / (3*ride_demand[t][s_ind]/31) #/ ride_demand[t][s_ind]# 
                             # pick up is reward, so negative cost, but gas is 
                             # positive
                             C_tjk = (-m_pick_up  + params.k * 
                                    avg_trip_dist[t][s_ind] * _km_to_mi)
+                        else:# no ride demand
+                            # print(f'average trip distance with no ride demand is {avg_trip_dist[t][s_ind]}')
+                            R_tjk = epsilon
+                            C_tjk = params.k*1.609*_km_to_mi # assume drivers travel 1.609 miles circling
+                    
                     # going to neighbor        
                     elif len(forward_trans[t][z_j][a][0]) > 0: 
                         n_zone = forward_trans[t][z_j][a][0][0][0]
-                        s_latlon = zone_geography[n_zone]
-                        n_latlon = zone_geography[n_zone]
+                        s_latlon = zone_geo[n_zone]
+                        n_latlon = zone_geo[n_zone]
                         # haversine returns distance between 
                         # two lat-lon tuples in km. 0.621371 converts km to mi.
                         C_tjk = (params.k * haversine(s_latlon, n_latlon) * 

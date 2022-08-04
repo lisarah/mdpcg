@@ -108,16 +108,18 @@ def transition_kernel_dict(epsilon, transitions_list):
     forward_transitions = []
     backward_transitions = []
     state_list = []
-    max_queue_level = 6
+    max_queue_level = 8 if len(transitions_list) == 15 else 7
+    truncate_zones =  [103, 104, 105, 153, 194, 202]
     for z_i in manhattan.zone_neighbors:
-        for q_level in range(max_queue_level):
-            state_list.append((z_i, q_level))
+        if z_i not in truncate_zones:
+            for q_level in range(max_queue_level):
+                state_list.append((z_i, q_level))
     action_dict = {s: [] for s in state_list}
     for s in state_list:
         if s[1] == 0: # in the pick up queue - add go to neighbors action
             a_ind = 0
             for neighbor in manhattan.zone_neighbors[s[0]]:
-                if neighbor != 999:
+                if neighbor not in truncate_zones:
                     action_dict[s].append(a_ind)
                     a_ind += 1
         # legacy: last action is trying to pick up a rider                

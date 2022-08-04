@@ -12,19 +12,21 @@ import numpy as np
 
 
 directory = 'C:/Users/craba/Desktop/code/mdpcg/V3/' 
-trips_filename = directory+'models/manhattan_transitions_jan.pickle'
-
-
+month = 'dec' # 'dec' # 
+ints = 12 # 15 min
+trips_filename = directory+f'models/taxi_data/manhattan_transitions_{month}_{ints}min.pickle'
+count_filename = directory+f'models/taxi_data/count_kernel_{month}_{ints}min.csv'
+avg_filename = directory +f'models/taxi_data/weighted_average_{month}_{ints}min.csv'
 class queue_game:
     
     def __init__(self, total_mass = 1, epsilon=0.1, strictly_convex = True):
         self.mass = total_mass
         trips_file = open(trips_filename, 'rb')
         m_transitions = pickle.load(trips_file)
-        for transition in m_transitions:
-            transition.pop(103)
-            transition.pop(104)
-            transition.pop(105)
+        # for transition in m_transitions:
+        #     transition.pop(103)
+        #     transition.pop(104)
+        #     transition.pop(105)
         trips_file.close()
         mdp = m_trans.transition_kernel_dict(epsilon, m_transitions)
         self.forward_P = mdp[0]
@@ -36,17 +38,16 @@ class queue_game:
         self.z_list = list(set(self.z_list)) # get unique values from z_list
         self.t0_density = self.random_t0_density()
         self.tolls = None
-        # self.forward_P, self.backward_P = m_trans.transition_kernel_pick_ups(
-        #     epsilon, m_transitions)
-        T = 12
-        S = 63
+        
+        print(f' number of zones {len(self.z_list)}')
+        print(f' number of states {len(self.state_list)}')
+        T = len(self.forward_P)
+        S = len(self.z_list)
+        print(f' length of time horizon is {T}')
         # there's a states mismatch somewhere 
         # - need to regenerate the count and weighted average files
-        demand_rate = m_cost.demand_rate(
-            directory+'models/taxi_dynamics/count_kernel_jan.csv', T, S)
-        self.avg_dist = pd.read_csv(
-            directory + 'models/taxi_dynamics/weighted_average_jan.csv', 
-            header=None).values
+        demand_rate = m_cost.demand_rate(count_filename, T, S)
+        self.avg_dist = pd.read_csv(avg_filename, header=None).values
         
         self.costs = m_cost.congestion_cost_dict(
             demand_rate, self.forward_P, self.avg_dist, epsilon=1e-3)
@@ -59,7 +60,19 @@ class queue_game:
                          for r in self.costs[t].values()] + [min_R])
         return min_R
     
-    
+    def get_social_cost(self, density):
+        potential_val = sum([sum([self.costs[t][st][0] * density[t][st]**2 \
+                + self.costs[t][st][0] * density[t][st] 
+                for st in self.costs[t].keys()]) 
+                for t in range(len(self.costs))]) 
+        if self.tolls is not None:
+            for zt in self.tolls.keys():
+                z_ind = zt[0]
+                t_ind = zt[1]
+                for a in self.action_dict[z_ind]:
+                    potential_val += self.tolls[zt]*density[t_ind][(z_ind, a)]
+            
+        return potential_val
     def get_potential(self, density):
         potential_val = sum([sum([  
             0.5*self.costs[t][st][0] * density[t][st]**2 \
@@ -70,8 +83,8 @@ class queue_game:
             for zt in self.tolls.keys():
                 z_ind = zt[0]
                 t_ind = zt[1]
-                
-                potential_val += self.tolls[zt]*density[t_ind][((z_ind, 0), 7)]
+                for a in [7]:# self.action_dict[z_ind]:
+                    potential_val += self.tolls[zt]*density[t_ind][(z_ind, a)]
             
         return potential_val
         
@@ -84,7 +97,8 @@ class queue_game:
                     self.costs[t][st][1] 
         if self.tolls is not None:
             for zt in self.tolls.keys():
-                grad[zt[1]][((zt[0], 0), 7)] += self.tolls[zt]
+                for a in [7]: # self.action_dict[zt[0]]:
+                    grad[zt[1]][(zt[0], a)] += self.tolls[zt]
                 
         return grad
     
@@ -172,7 +186,9 @@ class queue_game:
         return z_density                
                 
     def update_tolls(self, tau):
-        self.tolls = tau.copy()
+        self.tolls = {}
+        for k in tau.keys():
+            self.tolls[k] = tau[k]
                 
                 
                 

@@ -10,4 +10,4 @@ testFile.py
 *.pyc
 *.zip
 *.mp4
-
+*.csv

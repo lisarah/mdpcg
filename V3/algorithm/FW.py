@@ -48,8 +48,8 @@ def FW_dict(game, max_error, max_iterations, initial_density=None, verbose=True)
         V_k, pol_k = dp.value_iteration_dict(grad_list[-1], game.forward_P)
         sa_k, s_k = dp.density_retrieval(pol_k, game)
         step = 2 / (1+k)
-        next_y = [{sa: step*d_k[sa] + (1-step)*y_k[sa] for sa in y_k.keys()}
-                  for d_k, y_k in zip(sa_k, y_list[-1])]
+        next_y = [{sa: step*d_t[sa] + (1-step)*y_t[sa] for sa in y_t.keys()}
+                  for d_t, y_t in zip(sa_k, y_list[-1])]
         y_list.append(next_y)
         k += 1
         # compute error

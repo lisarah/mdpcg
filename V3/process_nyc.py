@@ -49,8 +49,8 @@ import csv
 import pickle
 #%% DATA %%#
 # Import trip data into numpy array
-data_file_name = "yellow_tripdata_2019-01.csv" # looking at january's 
-new_york_dec_2019 = pd.read_csv(data_file_name, header = 0).to_numpy()
+months = ['dec', 'jan']
+partition_amount = [12, 15] # 12 = 15 min intervals vs 15 = 12  min intervals
 
 # Import taxi zone lookup table
 taxi_zone_file = "taxi+_zone_lookup.csv"
@@ -66,50 +66,6 @@ def zone_list(borough_name):
     borough_zone_array = np.append(borough_zone_array, borough_zone_array[-1])
     
     return borough_zone_array.tolist()
-    
-    
-
-#%% TRIPS %%#
-# Create list of trip objects
-nydec2019_trips = []
-
-
-for i in range(new_york_dec_2019.shape[0]):
-    nydec2019_trips.append(trip.Trip(new_york_dec_2019[i]))
-
-#%% TRIP SORTING %%#
-# Define borough trip sorting function
-# Input: array of borough zones | list of overall trips to be sorted 
-# Output: list of trips that begin in borough of interest
-def borough_trips(trip_list, borough_zones_list):
-    borough_trip_list = []
-    for count, trip_instance in enumerate(trip_list):
-        if trip_instance.zone_pu and trip_instance.zone_do in borough_zones_list:
-            borough_trip_list.append(trip_list[count])
-    
-    return borough_trip_list
-
-# Define time sorting function
-# Input: list of trips that begin in borough of interest | time bounds (decimal)
-# Output: list of trips in borough that begin within certain time-range
-def time_sorted_trips(borough_trip_list, timeA, timeB):
-    boolean_index = np.array([False for trip in borough_trip_list])
-    for count, trip_instance in enumerate(borough_trip_list):
-        if trip_instance.putime > 9 and trip_instance.putime < 12:
-            boolean_index[count] = True
-    
-    borough_trip_list_np = np.array(borough_trip_list)
-    time_sorted_trip = borough_trip_list_np[boolean_index]
-    
-    borough_time_sorted_trips = time_sorted_trip.tolist()
-    
-    return borough_time_sorted_trips
-
-
-# Extract all trips originating in Staten Island Borough
-# area = 'Staten Island'
-# StIsl_zones = zone_list(area)
-# StIsl_trips = borough_trips(nyjan2019_trips, StIsl_zones)
 
 area = 'Manhattan'
 Man_zones = zone_list(area)
@@ -120,13 +76,7 @@ Man_zones.remove(153)
 Man_zones.remove(194)
 Man_zones.remove(202)
 Man_zones = np.asarray(Man_zones)
-Man_trips = borough_trips(nydec2019_trips, Man_zones)
-Man_trips_rush_hour = time_sorted_trips(Man_trips, 9, 12)
 
-# Save trips into a pickle
-open_file = open('models/manhattan_trips_jan.pickle', 'wb')
-pickle.dump(Man_trips_rush_hour, open_file)
-open_file.close()
 
 #%% TAU CALCULATION %%#
 
@@ -134,35 +84,28 @@ def tau_calculation(borough_time_sorted_trips):
     tau = np.mean(np.array([trips.trip_time for trips in borough_time_sorted_trips]))
     
     return tau
-    
-Man_tau = tau_calculation(Man_trips_rush_hour)
-
 
 #%% ZONE HISTOGRAM %%#
 # Define trip occurence plotting function
 # Input: list of trips beginning in borough of interest | array of zones in borough of interest | string containing borough name
 # Output: Array and plot of trip occurrences per borough zone 
-def trip_plot(borough_trips, borough_zones_list, borough_name):
-    hist = np.histogram([trips.zone_pu for trips in borough_trips], bins = borough_zones_list)    
-    borough_zones_str = [str(x) for x in np.delete(borough_zones_list, -1)]
+def trip_plot(borough_trips, zone_list, borough_name, plot=False):
+    hist = np.histogram([t.zone_pu for t in borough_trips], bins = zone_list)
 
-    fig = plt.figure(figsize=(20,5))
-    ax = fig.add_axes([0,0,1,1])
-    ax.bar(borough_zones_str, hist[0])
-
-    title = 'Trips Originating in ' + borough_name + ', January 2019'
-    ax.set_title(title)
-    ax.set_xlabel('Zone Number')
-    ax.set_ylabel('Trip Occurrences')
-    plt.show()
+    if plot:    
+        zone_names = [str(x) for x in np.delete(zone_list, -1)]
+    
+        fig = plt.figure(figsize=(20,5))
+        ax = fig.add_axes([0,0,1,1])
+        ax.bar(zone_names, hist[0])
+    
+        title = 'Trips Originating in ' + borough_name + ', January 2019'
+        ax.set_title(title)
+        ax.set_xlabel('Zone Number')
+        ax.set_ylabel('Trip Occurrences')
+        plt.show()
     
     return hist
-    
-# # Count and sort all trips originating in Staten Island
-# #StIsl_trip_hist = trip_plot(StIsl_trips, StIsl_zones, area)
-
-Man_trip_hist = trip_plot(Man_trips_rush_hour, Man_zones, area)
-
 
 # #%% STATE TRANSITION PROBABILITY %%#
 # # Define transition probability matrix function
@@ -210,42 +153,11 @@ def state_transition_matrix(borough_trip_list, borough_hist):
     
     np.nan_to_num(state_matrix)
     np.nan_to_num(count_matrix)
-    # np.nan_to_num(array_total)
-    # ext_state_col = np.zeros((len(zones),1))
-    # ext_state_row = np.zeros((len(zones)+1))
-    # ext_count_col = np.zeros((len(zones),1))
-    # ext_count_row = np.zeros((len(zones)+1))
-    # for i in range(len(zones)):
-    #     ext_state_col[i] = 1.000000 - np.sum(state_matrix[i,:-1])
-    #     ext_count_col[i] = array_total[i] - np.sum(count_matrix[i,:-1])
-    
-    # state_matrix = np.hstack((state_matrix, ext_state_col))
-    
-    # state_matrix = np.vstack((state_matrix, ext_state_row))
-    
-    # count_matrix = np.hstack((count_matrix, ext_count_col))
-    
-    # count_matrix = np.vstack((count_matrix, ext_count_row))
-
     
     return [state_matrix, count_matrix]
      
 # # Create transition matrix      
 # #StIsl_matrix = state_transition_matrix(StIsl_trips, StIsl_trip_hist)           
-    
-
-Man_transition_matrix = state_transition_matrix(Man_trips_rush_hour, Man_trip_hist)
-    
-# #%% Partitioning trips %%#
-
-# # Sort trips into periods of time 15s minutes long
-partition_amount = 12
-time_partition_bins = np.linspace(9,12,partition_amount+1)
-
-# # Create histogram for number of trips per 12 minute partition
-Man_time_partition_hist = np.histogram([trip.putime for trip in Man_trips_rush_hour], 
-                                       bins = time_partition_bins)
-
 def partition(borough_trip_list, partition_hist):
     freq = partition_hist[0]
     time_zones = partition_hist[1]
@@ -259,60 +171,101 @@ def partition(borough_trip_list, partition_hist):
         index += freq[count]
 
     return trip_partitions
-
-# List of lists containing trips corresponding to each partition
-Man_rush_hour_partitioned = partition(Man_trips_rush_hour, Man_time_partition_hist) 
-
-#%% Partitioned State Transition and Trip Matrices %%#
-
-# # List of state matrices
-Man_partitioned_transitions = [[] for i in range(len(Man_rush_hour_partitioned))]
-
-for count,_ in enumerate(Man_partitioned_transitions):
-    part_hist = trip_plot(Man_rush_hour_partitioned[count], Man_zones, area)
-    Man_partitioned_transitions[count] = state_transition_matrix(Man_rush_hour_partitioned[count], part_hist)
+#%% compute distance %%#
+compute_distance = True
+if compute_distance:
+    print('compute distance matrices')
+    distance_matrix = np.zeros([len(Man_zones)-1,len(Man_zones)-1])
     
-
-# #%% Distance Matrix %%#
-
-distance_matrix = np.zeros([len(Man_zones)-1,len(Man_zones)-1])
-
-# # Distance Matrix
-for i in range(len(Man_zones)-1):
-    for j in range(len(Man_zones)-1):
-        if i == j:
-            distance_matrix[i,j] = 1.609 # trips occurring in only one zone are 6 miles
-        else:
-            zone_i_latlon = visual.get_zone_locations('Manhattan')[Man_zones[i]]
-            zone_j_latlon = visual.get_zone_locations('Manhattan')[Man_zones[j]]
-            distance_matrix[i,j] = haversine(zone_i_latlon, zone_j_latlon)
-            
-# #%% Weighted Average Trip Distance Per Origin State %%#
-
-weighted_average_distance = [[] for i in range(len(Man_rush_hour_partitioned))]
-
-for count,_ in enumerate(Man_rush_hour_partitioned):
-    weights = Man_partitioned_transitions[count][0]
-    
-    array_ = []
+    # # Distance Matrix
     for i in range(len(Man_zones)-1):
-        array_.append(np.matmul(weights[i,:], distance_matrix[:,i]))
-            
-    weighted_average_distance[count] = array_
+        for j in range(len(Man_zones)-1):
+            if i == j:
+                distance_matrix[i,j] = 1.609 # trips occurring in only one zone are 6 miles
+            else:
+                zone_i_latlon = visual.get_zone_locations('Manhattan')[Man_zones[i]]
+                zone_j_latlon = visual.get_zone_locations('Manhattan')[Man_zones[j]]
+                distance_matrix[i,j] = haversine(zone_i_latlon, zone_j_latlon)
+    np.savetxt('distance_matrix.csv', distance_matrix, delimiter=',')
+     
+#%% TRIPS %%#
+# Create list of trip objects
+for month in months:
+    month_int = '12' if month == 'dec' else '01'
+    data_filename = f"yellow_tripdata_2019-{month_int}.csv" 
     
-# #%% Write to CSV file %%#
-
-# np.savetxt('distance_matrix_dec.csv', distance_matrix, delimiter=',')
-# np.savetxt('weighted_average_dec.csv', weighted_average_distance, delimiter=',')
-
-transition_kernel = np.array([matrix[0] for matrix in Man_partitioned_transitions]) # state transition kernel for each timestep
-count_kernel = np.array([matrix[1] for matrix in Man_partitioned_transitions]) # state trip count matrix for each timestep
-
-transition_df = pd.DataFrame(np.hstack(transition_kernel))
-count_df = pd.DataFrame(np.hstack(count_kernel))
-
-transition_df.to_csv('transition_kernel_dec.csv', index = False)
-count_df.to_csv('count_kernel_dec.csv', index = False)
+    print(f' opening file {data_filename}')
+    new_york_2019 = pd.read_csv(data_filename, header=0).to_numpy()
+    trips = []
+    for i in range(new_york_2019.shape[0]):
+        print(f'\r creating trip objects {i}/{new_york_2019.shape[0]}     ', end='')
+        trips.append(trip.Trip(new_york_2019[i]))
+    print('')
+    print('getting out boroughs: ')
+    manhattan_trips = [t for t in trips 
+                       if t.zone_pu in Man_zones and t.zone_do in Man_zones \
+                           and t.putime > 9 and t.putime < 12]
+    # Save trips into a pickle
+    output_filename = f'models/taxi_data/manhattan_trips_{month}.pickle'
+    print(f'saving trip list {output_filename} ')    
+    open_file = open(output_filename, 'wb')
+    pickle.dump(manhattan_trips, open_file)
+    open_file.close()    
+    # some extra code to do plotting/average compuations
+    # Man_tau = tau_calculation(Man_trips_rush_hour)   
+    # Man_trip_hist = trip_plot(Man_trips_rush_hour, Man_zones, area)   
+    # Man_transition_matrix = state_transition_matrix(Man_trips_rush_hour, Man_trip_hist)
+    for p_min in partition_amount:
+        t_min = 15 if p_min == 12 else 12
+        print(f' running for the month of {month} for {t_min} min intervals.')
+        count_csv_filename = f'models/taxi_data/count_kernel_{month}_{t_min}min.csv'
+        transition_csv_filename = f'models/taxi_data/transition_kernel_{month}_{t_min}min.csv'
+        avg_filename = f'models/taxi_data/weighted_average_{month}_{t_min}min.csv'
+        #%% Partitioned State Transition and Trip Matrices %%#
+        print('creating time partitioned transitions')
+        time_partition_bins = np.linspace(9,12,t_min+1)
+        
+        # # Create histogram for number of trips per 12 minute partition
+        partitioned_hist = np.histogram([
+            t.putime for t in manhattan_trips], bins=time_partition_bins)
+        # List of lists containing trips corresponding to each partition
+        rush_hour_trips_parted = partition(manhattan_trips, partitioned_hist) 
+    
+        # List of state matrices
+        Man_partitioned_transitions = [[] for _ in rush_hour_trips_parted]
+        
+        for count,_ in enumerate(Man_partitioned_transitions):
+            part_hist = trip_plot(rush_hour_trips_parted[count], 
+                                  Man_zones, area)
+            Man_partitioned_transitions[count] = state_transition_matrix(
+                rush_hour_trips_parted[count], part_hist)
+        # state transition kernel for each timestep    
+        print(f'saving transition file {transition_csv_filename}')
+        transition_kernel = np.array(
+            [matrix[0] for matrix in Man_partitioned_transitions]) 
+        transition_df = pd.DataFrame(np.hstack(transition_kernel))
+        transition_df.to_csv(transition_csv_filename, index = False)
+        
+        # state trip count matrix for each timestep
+        print(f'saving count kernel file {count_csv_filename}')
+        count_kernel = np.array([mat[1] for mat in Man_partitioned_transitions]) 
+        count_df = pd.DataFrame(np.hstack(count_kernel))
+        count_df.to_csv(count_csv_filename, index = False)
+    
+        #%% Weighted Average Trip Distance Per Origin State %%#
+        weighted_average_distance = [[] for _ in rush_hour_trips_parted]
+        
+        for count,_ in enumerate(rush_hour_trips_parted):
+            weights = Man_partitioned_transitions[count][0]
+            array_ = []
+            for i in range(len(Man_zones)-1):
+                array_.append(np.matmul(weights[i,:], distance_matrix[:,i]))
+                    
+            weighted_average_distance[count] = array_
+        print(f'saving average weight file {avg_filename}')
+        np.savetxt(avg_filename, weighted_average_distance, delimiter=',')
+    
+    
 
 
 
