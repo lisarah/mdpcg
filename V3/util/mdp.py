@@ -68,60 +68,54 @@ def constrainedReward3D(c,toll,constrainedState):
                 
     return constrainedC;   
 
-def drawOptimalPopulation(time,pos,G,optRes, is2D = False, 
+def drawOptimalPopulation(time,pos,G,optRes,
                           constrainedState = None, 
                           startAtOne = False, 
                           constrainedUpperBound = 0.2,
                           numPlayers = 1.):
     frameNumber = time;
     v = G.number_of_nodes();
-    fig = plt.figure();
+#    fig = plt.figure();
     #ax = plt.axes(xlim=(0, 2), ylim=(-2, 2))
     #line, = ax.plot([], [], lw=2)
-    iStart = -10;
-    mag = 1.;
-    if is2D: 
-        mag = numPlayers;
+    iStart = -2;
+    mag = numPlayers;
     cap = mag* np.ones(v);  
     if(constrainedState != None):
         # Draw the red circle
         cap[constrainedState]= cap[constrainedState]/(constrainedUpperBound)+1000; 
 
-    nx.draw_networkx_nodes(G,pos,node_size=cap,node_color='r',alpha=1);
+#    nx.draw_networkx_nodes(G,pos,node_size=cap,node_color='r',alpha=1);
     
     if(constrainedState != None):
         # Draw the white circle
         cap[constrainedState]= cap[constrainedState]/(constrainedUpperBound); 
         
-    nx.draw(G, pos=pos, node_size=numPlayers*cap, node_color='w',with_labels=True, font_weight='bold');
+    nx.draw(G, pos=pos, node_size=cap/mag, node_color='w',with_labels=True, font_weight='bold', font_color = 'w');
     dontStop = True; 
     try:
-        
         print('running')
-    
     except KeyboardInterrupt:
         print('paused')
         inp =input('continue? (y/n)')
     
     for i in range(iStart,frameNumber):
         try:
-            magFac = 5.;
-            if is2D:
-                if i < 0:
-                    frame = optRes[:,0];
-                else:
-                    frame = optRes[:,i];
-            else:
-                if i < 0:
-                    frame = np.einsum('ij->i', optRes[:,:,0]);
-                else:   
-                    frame = np.einsum('ij->i', optRes[:,:,i]);
+            if i < 0:
+                frame = np.einsum('ij->i', optRes[:,:,0]);
+            else:   
+                frame = np.einsum('ij->i', optRes[:,:,i]);
+                
             if startAtOne:
-                nodesize=[magFac*frame[f-1]*frame[f-1] for f in G];
+                nodesize=[mag*frame[f-1]*frame[f-1] for f in G];
             else:
-                nodesize=[magFac*frame[f]*frame[f] for f in G];
-            nx.draw_networkx_nodes(G,pos,node_size=numPlayers*numPlayers*cap,node_color='w',alpha=1)
-            nx.draw_networkx_nodes(G,pos,node_size=nodesize*cap,node_color='c',alpha=1)  
+                nodesize=[mag*frame[f]*frame[f] for f in G];
+            if i  > 0:
+                nx.draw_networkx_nodes(G,pos,node_size=lastNodeSize,node_color='w',alpha= 1);
+            nx.draw_networkx_nodes(G,pos,node_size=nodesize,node_color='b',alpha=1, with_labels=True, font_weight='bold')  ;
+            lastNodeSize = [];
+            for i in nodesize:
+                lastNodeSize.append(i+numPlayers*1.5);
         except KeyboardInterrupt:
             dontStop = False;
         plt.show();

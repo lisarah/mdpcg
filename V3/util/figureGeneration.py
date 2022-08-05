@@ -107,7 +107,7 @@ def airPortVis():
     nx.draw(G, pos=nodePos, node_color='b', edge_color='k',
                 font_weight='bold', transparent=True) # With specified positions
 
-    return True;
+    return G, nodePos;
     
     
     
