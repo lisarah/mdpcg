@@ -201,18 +201,27 @@ class queue_game:
                         with_queue=False):
         self.constrained_val = constrained_val
         self.constrain_queue = with_queue
+        self.constrained_states = []
         for c in constrained_zones:
             max_q =  self.max_q if with_queue else 1
             for q in range(max_q):
                 self.constrained_states = self.constrained_states + \
                     [(c, q) for q in range(max_q)]
                     
-    def get_constrained_gradient(self, density):
+    def get_constrained_gradient(self, density, return_violation=False):
         gradient = {}
-        for s in self.constrained_states:
-            total_density = sum([])
-            gradient[s] = density[s[1]][s[0]] - self.constrained_val
-        # for self.tolls[k]    
+        for t in range(self.T):
+            for s in self.constrained_states:
+                # if self.constraine_queue:
+                total_density = sum([density[t][(s, a)] 
+                                     for a in self.action_dict[s[0]]])
+                gradient[(s,t)] = total_density - self.constrained_val
+        if return_violation:
+            grad_arr = np.array(list(gradient.values()))
+            grad_arr[grad_arr < 0] = 0
+            return gradient, np.linalg.norm(grad_arr, 2)
+        else:
+            return gradient
         
                 
                 
