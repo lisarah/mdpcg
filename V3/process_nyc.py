@@ -35,17 +35,11 @@ USAGE:
     
 """
 import pandas as pd
-import decimal
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import colors
-from matplotlib import cm
-import math
 import util.trip as trip
-from collections import defaultdict
 import models.taxi_dynamics.visualization as visual
 from haversine import haversine
-import csv
 import pickle
 #%% DATA %%#
 # Import trip data into numpy array
