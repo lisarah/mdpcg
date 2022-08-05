@@ -4,20 +4,19 @@ Created on Fri Aug  2 18:10:31 2019
 
 @author: craba
 """
-import gameSolvers.cvx as cvxGame
-import util.mdp as mdp
+import gameSolvers.cvx as cvx
 
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
+import util.plot_lib as pt
 Time = 20;
 
-sGame = cvxGame.cvxGame(Time);
-seattleGraph=sGame.G;
+sGame = cvx.cvx_solver(20);
 #nx.draw(seattleGraph, pos = sGame("graphPos"),with_labels=True);
 #plt.show()
 #p0 = np.ones((seattleGraph.number_of_nodes()))/seattleGraph.number_of_nodes();
-p0 = np.zeros((seattleGraph.number_of_nodes()));
+p0 = np.zeros((sGame.G.number_of_nodes()));
 #p0[0] = 1.0;
 # make all drivers start from residential areas 6 of them
 residentialNum = 0.1;
@@ -30,19 +29,20 @@ p0[11] = 1./residentialNum;
 
 print ("Solving primal unconstrained case");
 optRes, mdpRes = sGame.solve(p0, verbose=False,returnDual=False);
-mdp.drawOptimalPopulation(Time,
-                          sGame.graphPos,
-                          sGame.G,
-                          optRes,
-                          startAtOne = True,
-                          numPlayers = 60.);
+# mdp.drawOptimalPopulation(Time,
+#                           sGame.graphPos,
+#                           sGame.G,
+#                           optRes,
+#                           startAtOne = True,
+#                           numPlayers = 60.);
 #
 cState = 6;                               
 sGame.setConstrainedState(cState, 10, isLB = True);
-print ("Solving constrained case, state 7 >= 0.5 case");
+print ("Solving constrained case, state 7 >= 10 case");
 optCRes = sGame.solveWithConstraint(p0,verbose = False);
 print ("optimal dual: ", sGame.optimalDual)
 print ("lower bound" , sGame.stateLB)
+print ("upper bound" , sGame.stateUB)
 #mdp.drawOptimalPopulation(Time,
 #                          sGame("graphPos"),
 #                          sGame("G"),

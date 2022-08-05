@@ -2,9 +2,10 @@
 """
 Created on Wed Aug  7 11:08:09 2019
 
-@author: craba
+@author: Sarah Li
 """
 import numpy as np
+import algorithm.dynamic_programming as dp
 
 def localFW(x0, p0, P, gradF, maxIterations = 5 ):
     it = 1;
@@ -30,33 +31,61 @@ def localSubproblem(gradient, p0, P):
     V = np.min(gradient);
     policy = np.argmin(gradient);
     xNext[int(policy)] = p0;
-    return V, xNext;     
- 
+    return V, xNext; 
+    
+def FW_dict(game, max_error, max_iterations, initial_density=None, verbose=True):
+    
+    y_list = [game.random_density() 
+              if initial_density is None else initial_density]
+    obj_list = [game.get_potential(y_list[0])]
+    grad_list = [game.get_gradient(y_list[0])]
+    k = 1
+    err = max_error *2
+    while k <= max_iterations and  abs(err) > max_error:
+        y_k = y_list[-1]
+        obj_list.append(game.get_potential(y_k))
+        grad_list.append(game.get_gradient(y_k))
+        V_k, pol_k = dp.value_iteration_dict(grad_list[-1], game.forward_P)
+        sa_k, s_k = dp.density_retrieval(pol_k, game)
+        step = 2 / (1+k)
+        next_y = [{sa: step*d_t[sa] + (1-step)*y_t[sa] for sa in y_t.keys()}
+                  for d_t, y_t in zip(sa_k, y_list[-1])]
+        y_list.append(next_y)
+        k += 1
+        # compute error
+        err = 0
+        for g_t, y_1t, y_2t in zip(grad_list[-1], y_list[-1], y_list[-2]):
+            err += sum([g_t[sa] * (y_1t[sa] - y_2t[sa]) for sa in g_t.keys()])
+        if verbose:
+            print(f'\r FW: error is {err} in {k} steps   ', end='')
+    print('')
+    return y_list, obj_list
+    
+
 def FW(x0, p0, P, gradF, 
        isMax=False, 
        maxError = 1e-1, 
        returnLastGrad = False, 
        maxIterations = 5000, 
        returnHist = True):
-    it = 1;
-    err= 1000.;
-    states, actions, time = x0.shape;
-    gradient = gradF(x0);
-    xk  = x0;
+    it = 1
+    err= 1e13
+    states, actions, time = x0.shape
+    gradient = gradF(x0)
+    xk = x0
+    verbose = False
     if returnHist:
-        xHistory = [];
-        xHistory.append(x0);
-        print ("initializing heap mem in Frank Wolfe");
-#        totalxK = np.zeros((states,actions,time));
+        xHistory = []
     else:
         xHistory = None;
 
     while it <= maxIterations and abs(err) >= maxError:
         step = 2./(1.+it);
-#        print "error: ", err;
+        if verbose:
+            print ("error: ", err)
         lastX =  1.0*xk;
         lastGrad = 1.0*gradient;
-        V, xNext  = subproblem(gradient, p0, P,isMax);
+        V, xNext  = dp.value_iteration(gradient, p0, P,isMax);
         xk = (1. - step)* xk + step*xNext;
         gradient = gradF(xk);
         
@@ -65,64 +94,24 @@ def FW(x0, p0, P, gradF,
 #            xHistory.append(totalxK/it);
             xHistory.append(1.0*xk);
 #        err = np.linalg.norm(lastGrad - gradient);
-        err = -np.sum(np.multiply(lastGrad,(lastX - xNext)));
-#        print "error is ", err;
+        err = np.sum(np.multiply(lastGrad,(lastX - xNext)));
+        # print (f"error is {err}")
         
         it += 1;
     if it >= maxIterations:
-        print ("ran out of iteraitons FW, error is", err);
+        print ("Frank wolfe ran out of iterations, error is", err)
     if returnLastGrad:
         return xk, xHistory, err;
-    else:
+    elif returnHist:
 #        print ("FW approx: number of iterations ", it);
-#        print ("FW approx: current error ", err);
+#        
         return xk, xHistory;
+    else:
+        if verbose:
+            print (f"FW norm: {np.sum(xk)} ")
+        return xk
 
-def subproblem(gradient, p0, P, isMax = False):
-    states, actions, time = gradient.shape;
-    V = np.zeros((states, time));
-    policy = np.zeros((states, time)); # pi_t(state) = action;
-    trajectory = np.zeros((states,time));
-    xNext = np.zeros((states,actions,time));
 
-    # construct optimal value function and policy
-    for tIter in range(time):
-        t = time-1-tIter;   
-        cCurrent =gradient[:,:,t]; 
-        if t == time-1:       
-            if isMax:
-                V[:,t] = np.max(cCurrent, axis = 1);
-                policy[:,t] = np.argmax(cCurrent, axis=1);
-            else:                 
-                V[:,t] = np.min(cCurrent, axis = 1);
-                policy[:,t] = np.argmin(cCurrent, axis=1);
-        else:
-            # solve Bellman operators
-            Vt = V[:,t+1];
-            obj = cCurrent + np.einsum('ijk,i',P,Vt);
-            if isMax:
-                V[:,t] = np.max(obj, axis=1);
-                policy[:,t] = np.argmax(obj, axis=1);
-            else:
-                V[:,t] = np.min(obj, axis=1);
-                policy[:,t] = np.argmin(obj, axis=1);
-
-    for t in range(time):
-        # construct next trajectory
-        if t == 0:
-            traj = 1.0*p0;
-        else:
-            traj = trajectory[:,t-1];
-        # construct y
-        pol = policy[:,t];
-        x = np.zeros((states,actions));
-
-        for s in range(states):
-            x[s,int(pol[s])] = traj[s];
-        xNext[:,:,t] = 1.0*x;
-        trajectory[:,t] =  np.einsum('ijk,jk',P,x);
-
-    return V, xNext; 
 def FW_inf(x0, p0, P, gradF, isMax=False, maxError = 1e-1, returnLastGrad = False, maxIterations = 100):
     it = 1;
     err= 1000.;
@@ -137,7 +126,7 @@ def FW_inf(x0, p0, P, gradF, isMax=False, maxError = 1e-1, returnLastGrad = Fals
         step = 2./(1.+it);
 #        print "error: ", err;
         lastGrad =  gradient;
-        V, xNext  = subproblem(gradient, p0, P,isMax);
+        V, xNext  = dp.value_iteration(gradient, p0, P,isMax);
         xk = (1. - step)* xk + step*xNext;
         gradient = gradF(xk);
         totalxK += 1.0*xk;

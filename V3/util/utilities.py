@@ -5,14 +5,10 @@ Created on Mon Aug 06 09:40:58 2018
 @author: craba
 """
 import numpy as np
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 from collections import namedtuple
-# plotting output settings
-mpl.rc('font',**{'family':'serif'})
-mpl.rc('text', usetex=True)
-mpl.rcParams.update({'font.size': 20})
-mpl.rc('legend', fontsize='small')
+
+
 # specify which graph we are using for the mdp problem
 Constraint = namedtuple("constraints", "index value upperBound");
 # truncate array values to something more readable
@@ -79,3 +75,14 @@ def statePlot(y):
     plt.xlabel("Time");
     plt.ylabel("Optimal Driver Density")
     plt.show();
+
+def cumulative_average(x_list):
+    N = 1
+    avg_list = [np.zeros(x_list[0].shape)]
+    for x in x_list:
+        next_avg = (avg_list[-1] * (N - 1) + x) / (N)
+        avg_list.append(next_avg)
+        N += 1
+    avg_list.pop(0)
+    return avg_list
+        
