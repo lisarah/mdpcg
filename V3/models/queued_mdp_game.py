@@ -12,14 +12,15 @@ import numpy as np
 
 
 directory = 'C:/Users/craba/Desktop/code/mdpcg/V3/' 
-month = 'dec' # 'dec' # 
+month = 'jan' # 'dec' # 
 ints = 12 # 15 min
 trips_filename = directory+f'models/taxi_data/manhattan_transitions_{month}_{ints}min.pickle'
 count_filename = directory+f'models/taxi_data/count_kernel_{month}_{ints}min.csv'
 avg_filename = directory +f'models/taxi_data/weighted_average_{month}_{ints}min.csv'
 class queue_game:
     
-    def __init__(self, total_mass = 1, epsilon=0.1, strictly_convex = True):
+    def __init__(self, total_mass = 1, epsilon=0.1, 
+                 strictly_convex=True, uniform_density=False):
         self.mass = total_mass
         trips_file = open(trips_filename, 'rb')
         m_transitions = pickle.load(trips_file)
@@ -36,22 +37,29 @@ class queue_game:
         self.sa_list = mdp[4]
         self.z_list = [s[0] for s in self.state_list]
         self.z_list = list(set(self.z_list)) # get unique values from z_list
-        self.t0_density = self.random_t0_density()
-        self.tolls = None
-        
         print(f' number of zones {len(self.z_list)}')
         print(f' number of states {len(self.state_list)}')
-        T = len(self.forward_P)
+        self.T = len(self.forward_P)
         S = len(self.z_list)
-        print(f' length of time horizon is {T}')
+        print(f' length of time horizon is {self.T}')
+        self.max_q = 8 if self.T == 15 else 7
+        self.constrain_queue = None
+        
+        self.t0_density = self.uniform_t0_density() if uniform_density \
+            else self.random_t0_density()
+        self.tolls = None
+        
+        
         # there's a states mismatch somewhere 
         # - need to regenerate the count and weighted average files
-        demand_rate = m_cost.demand_rate(count_filename, T, S)
+        demand_rate = m_cost.demand_rate(count_filename, self.T, S)
         self.avg_dist = pd.read_csv(avg_filename, header=None).values
         
         self.costs = m_cost.congestion_cost_dict(
             demand_rate, self.forward_P, self.avg_dist, epsilon=1e-3)
         self.transition_data = m_transitions
+        self.constrained_states = None
+        self.constrained_val = None
         
     def get_strong_convexity(self):
         min_R = 100
@@ -102,6 +110,12 @@ class queue_game:
                 
         return grad
     
+    def uniform_t0_density(self):
+        t0_density = {(z,0): self.mass/len(self.z_list) for z in self.z_list}
+        for q in range(1, self.max_q):
+            t0_density.update({(z,q): 0 for z in self.z_list})
+        return t0_density
+        
     def random_t0_density(self):
         t0_density = {s: np.random.random() 
                       for s in self.state_list}
@@ -110,7 +124,8 @@ class queue_game:
         t0_density = {s: d*scaling for s, d in t0_density.items()}
         return t0_density
     
-    def random_density(self):
+    
+    def whole_length_density(self):
         initial_s_density = [self.t0_density]
         initial_sa_density = []
         # at time 0, randomly generate a density that satisfies
@@ -146,17 +161,9 @@ class queue_game:
         transition_t = self.backward_P[t]
         next_density = {}
         for s in transition_t.keys():
-            
             orig_s, probs = transition_t[s]
             next_density[s] = sum([probs[i] * sa_density[orig_s[i]] 
                                    for i in range(len(probs))])
-            # if s == (127, 1) and t == 4:
-            #     print(f'{s} in backward_P at t = {t}')
-            #     print(f'came from {orig_s}')
-            #     print(f'came with probabilities {probs}')
-            #     for i in range(len(probs)):
-            #         print(f'densities at {orig_s[i]} is {sa_density[orig_s[i]]}')
-        # print(f' at time {t}, is (88, 5) in next_density {(88,5) in next_density}')
         return next_density
 
     def get_zone_densities(self, sa_density, include_queues=False):
@@ -189,6 +196,24 @@ class queue_game:
         self.tolls = {}
         for k in tau.keys():
             self.tolls[k] = tau[k]
+            
+    def set_constraints(self, constrained_zones, constrained_val, 
+                        with_queue=False):
+        self.constrained_val = constrained_val
+        self.constrain_queue = with_queue
+        for c in constrained_zones:
+            max_q =  self.max_q if with_queue else 1
+            for q in range(max_q):
+                self.constrained_states = self.constrained_states + \
+                    [(c, q) for q in range(max_q)]
+                    
+    def get_constrained_gradient(self, density):
+        gradient = {}
+        for s in self.constrained_states:
+            total_density = sum([])
+            gradient[s] = density[s[1]][s[0]] - self.constrained_val
+        # for self.tolls[k]    
+        
                 
                 
                 
