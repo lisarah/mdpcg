@@ -7,6 +7,7 @@ Created on Mon Mar  9 09:45:40 2020
 """
 import numpy  as np
 import util.mdp as mdp
+import util.figureGeneration as figGen
 import models.mdpcg as conGame
 P, C, D, S, A = mdp.airportMDP()
     
@@ -20,10 +21,13 @@ Time = 10;
 gateAssign = conGame.quad_game(P, S, A, C,D,Time);
 optDistri, mdpRes = gateAssign.solve(p0)
     
-    
-    
-    
-    
+G, nodePos = figGen.airPortVis();
+plotDistri = optDistri[:6, :,:]    
+mdp.drawOptimalPopulation(Time, 
+                          nodePos, 
+                          G, 
+                          plotDistri,
+                          startAtOne = True, numPlayers = 60.)   
     
     
     
