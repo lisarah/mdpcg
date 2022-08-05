@@ -38,17 +38,21 @@ y_res, obj_hist = fw.FW_dict(manhattan_game, max_error, max_iterations)
 alpha = manhattan_game.get_strong_convexity()
 print(f'convexity factor is {alpha}')
 
+# set constraints
 # Z = len(manhattan_game.z_list)
 T = len(manhattan_game.forward_P)
 Z = 3
 total_q = 8
 constrained_zones = [161, 68, 237] #[161,43,68,79,231,236,237,114]# manhattan_game.z_list
 constrained_states = [(c, 0) for c in constrained_zones]
-if toll_queues:
-    q = 1
-    while q < total_q:
-        constrained_states = constrained_states + [(c, q) 
-                                                   for c in constrained_zones]
+total_violation = manhattan_game.get_constrained_gradient(
+    y_res[-1], return_norm = True)
+print(f'before tolling: violation_density = {total_violation}')
+# if toll_queues:
+#     q = 1
+#     while q < total_q:
+#         constrained_states = constrained_states + [(c, q) 
+#                                                    for c in constrained_zones]
 
 # for c in constrained_zones:
 #     constrained_states = constrained_states + [(c, q) for q in range(total_q)]
@@ -77,28 +81,22 @@ step_size = 0.0001
 # set initial toll value
 # determine each state action's constraint violation
 
-violation_density = {}
-total_violation = 0
-for z in constrained_zones:
-    state_density = [sum([y_res[-1][t][((z,0),a)] for a in manhattan_game.action_dict[(z,0)]])
-                     for t in range(T)]
-    violation_density[z] = [state_density[t] - constrained_value for t in range(T)]
-    for t in range(len(violation_density[z])):
-        if violation_density[z][t] < 0:
-            violation_density[z][t] = 0
-    total_violation += np.linalg.norm(np.array(violation_density[z]), 2)
-print(f'violation_density = {total_violation}')
+# violation_density = {}
+# total_violation = 0
+# for z in constrained_zones:
+#     state_density = [sum([y_res[-1][t][((z,0),a)] for a in manhattan_game.action_dict[(z,0)]])
+#                      for t in range(T)]
+#     violation_density[z] = [state_density[t] - constrained_value for t in range(T)]
+#     for t in range(len(violation_density[z])):
+#         if violation_density[z][t] < 0:
+#             violation_density[z][t] = 0
+#     total_violation += np.linalg.norm(np.array(violation_density[z]), 2)
+
         
 tau = {}
 for s in constrained_states:
-    for t in range(T):
-        tau[(s, t)] =  0. if violation_density[s[0]][t] > 0 else 0
+    tau.update({(s, t): 0 for t in range(T)})
 # step_size = 0.005
-average_y = []
-true_constraint_violation = []
-distribution_history = []
-social_cost = []
-tau_values = []
 
 # find average constraint violation
 average_tau = {z: 0 for z in tau.keys()}
@@ -106,18 +104,14 @@ avg_distribution = [{sa: 0 for sa in y_res[-1][t].keys()}
                     for t in range(T)]
 avg_violation = []
 violation_state = constrained_zones[0]
-
+distribution_history = []
+social_cost = []
 # define dual ascent approximate gradient update.
 def approx_gradient(game, cur_tau, epsilon, k): # this eps comes from inexact_pga
     game.update_tolls(cur_tau)
-    print(f'toll in violation state: {manhattan_game.tolls[((violation_state,0), 10)]}')
-    
     # solve first game
     approx_y, obj_hist = fw.FW_dict(game, max_error, max_iterations, 
                                     initial_density, verbose=False)
-    # print(approx_y[-1][10].keys())
-    v_161_0 = sum([approx_y[-1][10][((violation_state,0),a)] for a in game.action_dict[(violation_state,0)]])
-    print(f'density in violation state: {v_161_0}')
     
     # print(f'cost in violation state: {game.costs[10][((violation_state,0),7)]}')
     distribution_history.append(approx_y[-1])
@@ -133,28 +127,16 @@ def approx_gradient(game, cur_tau, epsilon, k): # this eps comes from inexact_pg
             avg_distribution[t][sa] = (avg_distribution[t][sa]*k+approx_y[-1][t][sa])/(k+1)
             distribution_diff += abs(avg_distribution[t][sa] - approx_y[-1][t][sa])
     print(f' {k}: distribution difference {distribution_diff}')
-    avg_violation.append(0)
+    gradient, violation = manhattan_game.get_constrained_gradient(
+        approx_y[-1], return_violation=True)
+    avg_violation.append(violation)
+    print(f'{k}: violation {avg_violation[-1]}')
     population_sum = sum([sum([avg_distribution[t][sa] 
                                for sa in avg_distribution[t].keys()])
                           for t in range(T)])
     assert round(population_sum - T*mass, 5) == 0,  \
         f'population sum at {k}: {population_sum}'
-    for s in constrained_states:
-        z_violation = [sum([avg_distribution[t][(s,a)] for a in 
-                            game.action_dict[s]]) - constrained_value
-                       for t in range(T)]
-        # z_violation = [state_density - constrained_value for t in range(T)]
-        for t in range(len(z_violation)):
-            if z_violation[t] < 0:
-                z_violation[t] = 0
-        avg_violation[-1] += np.linalg.norm(np.array(z_violation), 2)
-    print(f'{k}: violation {avg_violation[-1]}')
-    # true_constraint_violation
-    gradient = {}
-    for zt in cur_tau.keys():
-        density = sum([approx_y[-1][zt[1]][(zt[0],a)] 
-                       for a in game.action_dict[zt[0]]])
-        gradient[zt] = density - constrained_value 
+    
     return gradient
     
 # epsilons = [epsilon for i in range(max_iteration)]
