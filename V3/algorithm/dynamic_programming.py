@@ -52,7 +52,7 @@ def value_iteration_dict(cost, P, is_max=False):
                 Q = {}
                 for a in P[t][s].keys():
                     Q_sa = cost[t][(s,a)] + sum([
-                        P_ts[a][1][i] * V[-1][P_ts[a][0][i]] 
+                        P_ts[a][1][i] * V[-2][P_ts[a][0][i]] 
                         for i in range(len(P_ts[a][0]))])
                     Q[Q_sa] = a
             V[-1][s] = max(Q.keys()) if is_max else min(Q.keys())
@@ -79,7 +79,7 @@ def density_retrieval(pol, game):
     """
     T = len(pol)
     sa_density = []
-    s_density = [game.t0_density]
+    s_density = [game.t0]
     for t in range(T):
         # d_sum = sum([s_density[-1][s] for s in game.state_list])
         # assert round(d_sum, 5) == 100, f' density at time {t} is {d_sum}'

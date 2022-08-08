@@ -50,9 +50,6 @@ def inexact_pga(game, tau_0, approx_gradient, step_size, max_iteration = 1000,
         if is_dict: 
             tau_hist[-1] = {zt: max([0, tau_hist[-2][zt]+step_size*gradient[zt]])
                         for zt in tau_hist[-2].keys() }
-            # tau_hist[-1] = {zt: max([0, 2*tau_hist[-2][zt]])
-            #             for zt in tau_hist[-2].keys() }
-
         else:
             tau_hist[-1] = tau_hist[-2] + step_size * gradient
             tau_hist[-1][tau_hist[-1] < 0] = 0

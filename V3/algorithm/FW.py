@@ -35,7 +35,7 @@ def localSubproblem(gradient, p0, P):
     
 def FW_dict(game, max_error, max_iterations, initial_density=None, verbose=True):
     
-    y_list = [game.whole_length_density() 
+    y_list = [game.get_density() 
               if initial_density is None else initial_density]
     obj_list = [game.get_potential(y_list[0])]
     grad_list = [game.get_gradient(y_list[0])]

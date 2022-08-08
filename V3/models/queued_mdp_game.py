@@ -20,16 +20,15 @@ avg_filename = directory +f'models/taxi_data/weighted_average_{month}_{ints}min.
 class queue_game:
     
     def __init__(self, total_mass = 1, epsilon=0.1, 
-                 strictly_convex=True, uniform_density=False):
+                 strictly_convex=True, uniform_density=False, flat=False):
         self.mass = total_mass
         trips_file = open(trips_filename, 'rb')
         m_transitions = pickle.load(trips_file)
-        # for transition in m_transitions:
-        #     transition.pop(103)
-        #     transition.pop(104)
-        #     transition.pop(105)
         trips_file.close()
-        mdp = m_trans.transition_kernel_dict(epsilon, m_transitions)
+        if flat:
+            mdp = m_trans.transition_kernel_dict_flat(epsilon, m_transitions)
+        else:
+            mdp = m_trans.transition_kernel_dict(epsilon, m_transitions)
         self.forward_P = mdp[0]
         self.backward_P = mdp[1]
         self.state_list = mdp[2]
@@ -84,7 +83,7 @@ class queue_game:
     def get_potential(self, density):
         potential_val = sum([sum([  
             0.5*self.costs[t][st][0] * density[t][st]**2 \
-                + self.costs[t][st][0] * density[t][st] 
+                + self.costs[t][st][1] * density[t][st] 
                 for st in self.costs[t].keys()]) 
                 for t in range(len(self.costs))]) 
         if self.tolls is not None:
