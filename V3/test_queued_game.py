@@ -15,15 +15,15 @@ import models.test_model as test
 
             
 mass = 10000
-flat = False
-is_test = True
+flat = True
+is_test = False
 if is_test: 
     neighbor_list = {1: [1, 2], 2: [2, 1]}
+    manhattan_game = test.queue_game(mass, uniform_density=True)
 else:
     neighbor_list = m_neighs.zone_neighbors
-    
-# manhattan_game = game.queue_game(mass, 0.1, uniform_density=True, flat=flat)
-manhattan_game = test.queue_game(mass, uniform_density=True)
+    manhattan_game = game.queue_game(mass, 0.1, uniform_density=True, 
+                                     flat=flat)
 
 
 #%% Test Transition dynamics %%%
@@ -185,8 +185,8 @@ plt.show()
 
     
 #%% test that final density is still equal to mass %%#
-# congested_zones = [161, 261, 87]
-congested_zones = [1, 2]
+congested_zones = [161, 261, 87]
+# congested_zones = [1, 2]
 congested_densities = []
 z_densities = manhattan_game.get_zone_densities(y_res[-1], include_queues=True)
 for t in range(len(z_densities)):
