@@ -15,7 +15,7 @@ import models.test_model as test
 
             
 mass = 10000
-flat = True
+flat = False
 is_test = False
 if is_test: 
     neighbor_list = {1: [1, 2], 2: [2, 1]}

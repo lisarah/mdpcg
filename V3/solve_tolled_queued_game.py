@@ -22,7 +22,7 @@ epsilon = 100 # error in approximate solution of drivers learning
 # epsilon_list = [5e3]  # [1e5, 2e4, 2e3, 1e3]
 borough = 'Manhattan' # borough of interest
 mass = 10000 # game population size
-constrained_value = 350 # maximum driver density per state
+constrained_value = 350 # 350  for flat # maximum driver density per state
 max_error = 5000
 max_iterations = 1000 # number of iterations of dual ascent
 toll_queues = False
@@ -30,7 +30,7 @@ toll_queues = False
 # print(f'cur seed {np.random.get_state[1][0]}')
 np.random.seed(3239535799)
 manhattan_game = queued_game.queue_game(mass, 0.01, uniform_density=True,
-                                        flat=True) 
+                                        flat=False) 
 
 initial_density = manhattan_game.get_density()
 y_res, obj_hist = fw.FW_dict(manhattan_game, max_error, max_iterations)

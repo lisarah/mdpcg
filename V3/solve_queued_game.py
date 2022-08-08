@@ -21,13 +21,13 @@ mass = 10000
 # print(f' current seed is {np.random.get_state()[1][0]}')
 # np.random.seed(3239535799)
 manhattan_game = queued_game.queue_game(mass, 0.01, uniform_density=True, 
-                                        flat=True)
+                                        flat=False)
 T = len(manhattan_game.forward_P)
 initial_density = manhattan_game.get_density()
 y_res, obj_hist = fw.FW_dict(manhattan_game, 
-                             max_error=100, max_iterations=1e3)
+                             max_error=1000, max_iterations=1e3)
 print(f'FW solved objective = {obj_hist[-1]}')
-z_density = manhattan_game.get_zone_densities(y_res[-1], True)
+z_density = manhattan_game.get_zone_densities(y_res[-1], False)
 avg_density = {}
 t_density = {}
     
@@ -47,7 +47,11 @@ print(f'maximum density = {max_density}')
 violation_density = {}
 for z in z_density[0].keys():
     t_density[z] = [z_density[t][z] for t in range(T)]
-    avg_density[z] = sum(t_density[z]) / T
+    if type(z) == tuple:
+        if z[1] == 0:
+            avg_density[z[0]] = sum(t_density[z])/T
+    else:
+        avg_density[z] = sum(t_density[z])/T
     threshold = [z_density[t][z] - constrained_value for t in range(T)]
     
     violations = [v for v in threshold if v > 0]
@@ -57,7 +61,10 @@ for z in z_density[0].keys():
         print(f'zone {z} violates constraint <{ constrained_value} '
               f'with {violation}')
         violation_density[z] = [z_density[t][z] for t in range(T) ]
-
+        if type(z) == tuple:
+            z_density[t][z[0]] = z_density[t][z]
+            constraint_violation[z[0]] = violation
+            constraint_violation.pop(z)
 
 norm = mpl.colors.Normalize(vmin=(min_density), vmax=(max_density))
 color_map = plt.get_cmap('coolwarm') # Spectral
@@ -74,6 +81,9 @@ for z in constraint_violation.keys():
         if ind == z:
             bar_labels.append(zone_name)
             found = True
+        # elif type(z) == tuple and z[0] == ind:
+        #     bar_labels.append(zone_name)
+        #     found = True
             
 fig_width = 5.3 * 2
 f = plt.figure(figsize=(fig_width,8))
