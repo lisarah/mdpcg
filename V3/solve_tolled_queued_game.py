@@ -22,9 +22,9 @@ epsilon = 100 # error in approximate solution of drivers learning
 # epsilon_list = [5e3]  # [1e5, 2e4, 2e3, 1e3]
 borough = 'Manhattan' # borough of interest
 mass = 10000 # game population size
-constrained_value = 350 # maximum driver density per state
-max_error = 100
-max_iterations = 100 # number of iterations of dual ascent
+constrained_value = 500 # maximum driver density per state
+max_error = 5000
+max_iterations = 1000 # number of iterations of dual ascent
 toll_queues = False
 # game definition with initial distribution
 # print(f'cur seed {np.random.get_state[1][0]}')
@@ -44,7 +44,7 @@ print(f'convexity factor is {alpha}')
 T = len(manhattan_game.forward_P)
 Z = 3
 total_q = 8
-constrained_zones = [161, 236, 237] #[161,43,68,79,231,236,237,114]# manhattan_game.z_list
+constrained_zones = [161, 236, 237] # [161, 236, 237] #[161,43,68,79,231,236,237,114]# manhattan_game.z_list
 # constrained_zones = [1]
 # constrained_states = [(c, 0) for c in constrained_zones]
 manhattan_game.set_constraints(constrained_zones, constrained_value)
@@ -74,6 +74,7 @@ for t in range(T):
         z_ind += 1 
 two_norm_A = np.linalg.norm(A_arr,2)
 step_size = alpha/2/(two_norm_A**2)
+step_size = 1e-3
 print(f'norm of A is {two_norm_A}, step size is {step_size}')
 # step_size = 0.12 #  0.0001
 # set initial toll value
@@ -115,8 +116,7 @@ def approx_gradient(game, cur_tau, epsilon, k): # this eps comes from inexact_pg
     
     # print(f'cost in violation state: {game.costs[10][((violation_state,0),7)]}')
     # distribution_history.append(approx_y[-1])
-    social_cost.append(game.get_social_cost(approx_y[-1]))
-
+    
     # average tau
     for z in cur_tau.keys():
         average_tau[z] = (average_tau[z]*k+cur_tau[z])/(k+1) 
@@ -128,15 +128,20 @@ def approx_gradient(game, cur_tau, epsilon, k): # this eps comes from inexact_pg
             distribution_diff += abs(avg_distribution[t][sa] - approx_y[-1][t][sa])
     print(f' {k}: distribution difference {round(distribution_diff,2)}')
     gradient, violation = manhattan_game.get_constrained_gradient(
-        approx_y[-1], return_violation=True)
+        avg_distribution, return_violation=True)
     avg_violation.append(violation)
-    print(f'{k}: violation {round(avg_violation[-1],2)}')    
+    print(f'{k}: average violation {round(avg_violation[-1],2)}')   
+    tau_arr = np.array(list(cur_tau.values()))
+    tau_norm = np.linalg.norm(tau_arr, 2)
+    print(f'{k}: tau norm {tau_norm}')
+    social_cost.append(game.get_social_cost(avg_distribution))
+
     return gradient
     
 # epsilons = [epsilon for i in range(max_iteration)]
-tau_hist, gradient_hist = pga.inexact_pga(manhattan_game, tau, approx_gradient, step_size, 
-                                          100, epsilons = [100]*100000, 
-                                          verbose = False)
+tau_hist, gradient_hist = pga.inexact_pga(
+    manhattan_game, tau, approx_gradient, step_size, max_iterations, 
+    epsilons=[max_error]*100000, verbose = False)
 
 # find average tau value
 tau_values = []
@@ -145,9 +150,9 @@ tau_ind = 0
 for tau_ind in range(len(tau_hist)):
     for z in tau.keys():
         average_tau[z] = (average_tau[z]*tau_ind+tau_hist[tau_ind][z])/(tau_ind+1) 
-    tau_values.append(sum([abs(tau) for tau in average_tau.values()]))
-    # tau_arr = np.array(list(average_tau.values())) 
-    # tau_values.append(np.linalg.norm(tau_arr, 1))
+   
+    tau_arr = np.array(list(average_tau.values())) 
+    tau_values.append(np.linalg.norm(tau_arr, 2))
 # find average constraint violation
 
     
