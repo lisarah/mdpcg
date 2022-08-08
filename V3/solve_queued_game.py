@@ -17,12 +17,13 @@ import models.taxi_dynamics.manhattan_neighbors as m_neighbors
 mpl.rc('text', usetex=False)
 mass = 10000
 # for debugging
-np.random.seed(49952574)
+# np.random.seed(49952574)
 # print(f' current seed is {np.random.get_state()[1][0]}')
 # np.random.seed(3239535799)
-manhattan_game = queued_game.queue_game(mass, 0.01, flat=False)
+manhattan_game = queued_game.queue_game(mass, 0.01, uniform_density=True, 
+                                        flat=True)
 T = len(manhattan_game.forward_P)
-initial_density = manhattan_game.whole_length_density()
+initial_density = manhattan_game.get_density()
 y_res, obj_hist = fw.FW_dict(manhattan_game, 
                              max_error=100, max_iterations=1e3)
 print(f'FW solved objective = {obj_hist[-1]}')
@@ -33,7 +34,7 @@ t_density = {}
 constraint_violation= {}
 min_density = 1
 max_density = 1
-constrained_value = 325
+constrained_value = 350
 # determine min/max density levels
 for t in range(T): 
     min_density = min(list(z_density[t].values()) + [min_density])
