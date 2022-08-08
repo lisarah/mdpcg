@@ -13,13 +13,13 @@ import matplotlib.pyplot as plt
 import models.taxi_dynamics.manhattan_neighbors as m_neighs
 
 """ Format matplotlib output to be latex compatible with gigantic fonts."""
-mpl.rc('font',**{'family':'serif'})
-mpl.rc('text', usetex=True)
-mpl.rcParams.update({'font.size': 12})
-mpl.rc('legend', fontsize='small')
+# mpl.rc('font',**{'family':'serif'})
+# mpl.rc('text', usetex=True)
+# mpl.rcParams.update({'font.size': 12})
+# mpl.rc('legend', fontsize='small')
 
 
-directory = 'C:/Users/craba/Desktop/code/mdpcg/V3/models/taxi_data/' 
+directory = 'C:/Users/Sarah Li/Desktop/code/mdpcg/V3/models/taxi_data/' 
 months = ['dec', 'dec', 'jan', 'jan']
 t_ints = [12, 15, 12, 15]
 

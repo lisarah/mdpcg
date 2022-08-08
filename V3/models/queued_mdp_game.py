@@ -11,9 +11,9 @@ import pandas as pd
 import numpy as np
 
 
-directory = 'C:/Users/craba/Desktop/code/mdpcg/V3/' 
+directory = 'C:/Users/Sarah Li/Desktop/code/mdpcg/V3/' 
 month = 'jan' # 'dec' # 
-ints = 12 # 15 min
+ints = 15 # 15 min
 trips_filename = directory+f'models/taxi_data/manhattan_transitions_{month}_{ints}min.pickle'
 count_filename = directory+f'models/taxi_data/count_kernel_{month}_{ints}min.csv'
 avg_filename = directory +f'models/taxi_data/weighted_average_{month}_{ints}min.csv'

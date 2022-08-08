@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import models.taxi_dynamics.manhattan_neighbors as m_neighbors
 
-
+mpl.rc('text', usetex=False)
 mass = 10000
 # for debugging
 # np.random.seed(49952574)
