@@ -11,10 +11,19 @@ import algorithm.dynamic_programming as dp
 import algorithm.FW as fw
 import matplotlib.pyplot as plt
 import time
+import models.test_model as test
 
             
 mass = 10000
-manhattan_game = game.queue_game(mass, 0.1)
+flat = False
+is_test = True
+if is_test: 
+    neighbor_list = {1: [1, 2], 2: [2, 1]}
+else:
+    neighbor_list = m_neighs.zone_neighbors
+    
+# manhattan_game = game.queue_game(mass, 0.1, uniform_density=True, flat=flat)
+manhattan_game = test.queue_game(mass, uniform_density=True)
 
 
 #%% Test Transition dynamics %%%
@@ -54,7 +63,7 @@ for tup in forward_P[check_ind].keys():
         if a_ind != pu_action:
             neighbors, probs = forward_P[check_ind][tup][a_ind] 
             # print(f' tup is {tup} action is {a_ind}')
-            cur_neighbor = m_neighs.zone_neighbors[tup[0]][a_ind]
+            cur_neighbor = neighbor_list[tup[0]][a_ind]
             assert cur_neighbor == neighbors[0][0], \
                 f' at state {tup}, neighbor {cur_neighbor} is not {neighbors[0][0]} '
         # sum of probabilities is 1 for each state action:
@@ -66,9 +75,9 @@ for tup in forward_P[check_ind].keys():
             assert dest_state in forward_P[check_ind].keys(), \
             f'{dest_state} not in state list'
             if a_ind != pu_action:
-                assert dest_state[0] in m_neighs.zone_neighbors[tup[0]], \
+                assert dest_state[0] in neighbor_list[tup[0]], \
                 f'at {tup[0]}, destination {dest_state[0]} not in ' \
-                f'neighbor list {m_neighs.zone_neighbors[tup[0]]}'
+                f'neighbor list {neighbor_list[tup[0]]}'
 # test for all other actions:
     
 print('all tests for forward transitions passed')
@@ -86,11 +95,16 @@ for dest, orig in backward_P[check_ind].items():
         dest_ind = forward_P[check_ind][o_state][o_action][0].index(dest)
         forward_probability = forward_P[check_ind][o_state][o_action][1][dest_ind]
         # check that probabilities in the forward and backward cases match
-        assert orig[1][i] == forward_probability, \
-        f'dest {dest} to origin {o_state} probabilities mismatch ' \
-        f'{orig[1][i]} != {forward_probability} at time {check_ind}'
+        if flat:
+             assert orig[1][i] >=forward_probability, \
+            f'dest {dest} to origin {o_state} probabilities mismatch ' \
+            f'{orig[1][i]} is less than {forward_probability} at time {check_ind}'
+        else:
+            
+            assert orig[1][i] == forward_probability, \
+            f'dest {dest} to origin {o_state} probabilities mismatch ' \
+            f'{orig[1][i]} != {forward_probability} at time {check_ind}'
 print('all tests for backward transition passed')
-    
 
 #%% Test the initial densities %%#
 def test_density(d_list, mass, game):
@@ -125,7 +139,7 @@ def test_density(d_list, mass, game):
     
 # np.random.seed(111)
 print('testing for current density')
-initial_density = manhattan_game.random_density()
+initial_density = manhattan_game.get_density()
 test_density(initial_density, mass, manhattan_game)
  
 
@@ -171,7 +185,8 @@ plt.show()
 
     
 #%% test that final density is still equal to mass %%#
-congested_zones = [161, 261, 87]
+# congested_zones = [161, 261, 87]
+congested_zones = [1, 2]
 congested_densities = []
 z_densities = manhattan_game.get_zone_densities(y_res[-1], include_queues=True)
 for t in range(len(z_densities)):

@@ -17,14 +17,14 @@ import models.taxi_dynamics.manhattan_neighbors as m_neighbors
 mpl.rc('text', usetex=False)
 mass = 10000
 # for debugging
-# np.random.seed(49952574)
+np.random.seed(49952574)
 # print(f' current seed is {np.random.get_state()[1][0]}')
-np.random.seed(3239535799)
-manhattan_game = queued_game.queue_game(mass, 0.01)
+# np.random.seed(3239535799)
+manhattan_game = queued_game.queue_game(mass, 0.01, flat=False)
 T = len(manhattan_game.forward_P)
 initial_density = manhattan_game.whole_length_density()
 y_res, obj_hist = fw.FW_dict(manhattan_game, 
-                             max_error=1000, max_iterations=1e3)
+                             max_error=100, max_iterations=1e3)
 print(f'FW solved objective = {obj_hist[-1]}')
 z_density = manhattan_game.get_zone_densities(y_res[-1], True)
 avg_density = {}
