@@ -22,18 +22,19 @@ epsilon = 100 # error in approximate solution of drivers learning
 # epsilon_list = [5e3]  # [1e5, 2e4, 2e3, 1e3]
 borough = 'Manhattan' # borough of interest
 mass = 10000 # game population size
-constrained_value = 350 # maximum driver density per state
-max_error = 5000
+constrained_value = 350 # 350  for flat # maximum driver density per state
+# max_error = 5000
+max_errors = [10000, 5000, 1000, 500, 100]
 max_iterations = 1000 # number of iterations of dual ascent
 toll_queues = False
 # game definition with initial distribution
 # print(f'cur seed {np.random.get_state[1][0]}')
 np.random.seed(3239535799)
 manhattan_game = queued_game.queue_game(mass, 0.01, uniform_density=True,
-                                        flat=True) 
+                                        flat=False) 
 
 initial_density = manhattan_game.get_density()
-y_res, obj_hist = fw.FW_dict(manhattan_game, max_error, max_iterations)
+y_res, obj_hist = fw.FW_dict(manhattan_game, max_errors[-1], max_iterations)
 # determine the step size, which depends on strong convexity 
 # and the constraint norm
 alpha = manhattan_game.get_strong_convexity()
@@ -71,76 +72,116 @@ tau = {}
 for s in constrained_zones:
     tau.update({((s, 0), t): 0 for t in range(T)})
 
-# bookkeeping stats
-average_tau = {z: 0 for z in tau.keys()}
-avg_distribution = [{sa: 0 for sa in y_res[-1][t].keys()} 
-                    for t in range(T)]
-avg_violation = []
-social_cost = []
+# error vs accuracy stats
+avg_tolls = {err: None for err in max_errors}
+avg_violations = {err: None for err in max_errors}
 
-tau_hist = []
-violation_hist = []
-# define dual ascent approximate gradient update.
-def approx_gradient(game, cur_tau, epsilon, k): # this eps comes from inexact_pga
-    game.update_tolls(cur_tau)
-    # solve first game
-    approx_y, obj_hist = fw.FW_dict(game, max_error, max_iterations, 
-                                    initial_density, verbose=False)
+for err in max_errors:
+    print('')
+    print(f'------ running error {err} ---------')
 
-    # average tau
-    for z in cur_tau.keys():
-        average_tau[z] = (average_tau[z]*k+cur_tau[z])/(k+1) 
-    # average distribution
-    distribution_diff = 0
-    for t in range(T):
-        for sa in approx_y[-1][t].keys():
-            avg_distribution[t][sa] = (
-                avg_distribution[t][sa]*k+approx_y[-1][t][sa])/(k+1)
-            distribution_diff += abs(avg_distribution[t][sa] - 
-                                     approx_y[-1][t][sa])
-    # print(f' {k}: distribution difference {round(distribution_diff,2)}')
-    gradient, violation = manhattan_game.get_constrained_gradient(
-        approx_y[-1], return_violation=True)
-    _, avg_violation_k = manhattan_game.get_constrained_gradient(
-        avg_distribution, return_violation=True)
-    avg_violation.append(avg_violation_k)
-    print(f'{k}: average violation {round(avg_violation[-1],2)}')  
-    social_cost.append(game.get_social_cost(avg_distribution))
-    tau_arr = np.array(list(cur_tau.values()))
-    tau_norm = np.linalg.norm(tau_arr, 2)
-    print(f'{k}: tau norm {tau_norm}')
-    return gradient
+    # bookkeeping stats
+    tau_hist = []
+    violation_hist = []
+    average_tau = {z: 0 for z in tau.keys()}
+    avg_distribution = [{sa: 0 for sa in y_res[-1][t].keys()} 
+                        for t in range(T)]
+    avg_violation = []
+    social_cost = []
+    # define dual ascent approximate gradient update.
+    def approx_gradient(game, cur_tau, approx_err, k): # this eps comes from inexact_pga
+        game.update_tolls(cur_tau)
+        # solve first game
+        # print(f'{approx_err}')
+        approx_y, obj_hist = fw.FW_dict(game, approx_err, max_iterations, 
+                                        initial_density, verbose=False)  
+        # average tau
+        for z in cur_tau.keys():
+            average_tau[z] = (average_tau[z]*k+cur_tau[z])/(k+1) 
+        # average distribution
+        # distribution_diff = 0
+        for t in range(T):
+            for sa in approx_y[-1][t].keys():
+                avg_distribution[t][sa] = (
+                    avg_distribution[t][sa]*k+approx_y[-1][t][sa])/(k+1)
+                # distribution_diff += abs(avg_distribution[t][sa] - 
+                #                          approx_y[-1][t][sa])
+        # print(f' {k}: distribution difference {round(distribution_diff,2)}')
+        gradient, violation = manhattan_game.get_constrained_gradient(
+            approx_y[-1], return_violation=True)
+        _, avg_violation_k = manhattan_game.get_constrained_gradient(
+            avg_distribution, return_violation=True)
+        avg_violation.append(avg_violation_k)
+        social_cost.append(game.get_social_cost(avg_distribution))
+        tau_arr = np.array(list(cur_tau.values()))
+        tau_norm = np.linalg.norm(tau_arr, 2)
+        print(f'\r {k}: average violation {round(avg_violation[-1],2)}, tau norm {tau_norm}   ', end ='')  
+        
+        return gradient
     
-# epsilons = [epsilon for i in range(max_iteration)]
-tau_hist, gradient_hist = pga.inexact_pga(manhattan_game, tau, approx_gradient, step_size, 
-                                          max_iterations, epsilons = [max_error]*100000, 
-                                          verbose = False)
-# find average tau value
-tau_values = []
-average_tau = {z: 0 for z in tau_hist[-1].keys()}
-tau_ind = 0
-for tau_ind in range(len(tau_hist)):
-    for z in tau.keys():
-        average_tau[z] = (average_tau[z]*tau_ind+tau_hist[tau_ind][z])/(tau_ind+1) 
-    tau_arr = np.array(list(average_tau.values())) 
-    tau_values.append(np.linalg.norm(tau_arr, 2))
-# find average constraint violation
-pt.objective(tau_values, optimal_value = None, alg_name='Average Toll Value')   
-
-#%% average tolling values for last approximation %%#
-plt.figure()
-print('fig 3 = toll norm as function of designer iteration')
-plt.plot(tau_values, linewidth=3, label='total toll value')
-plt.plot(avg_violation, label = 'total constraint violation', linewidth=3)
-plt.legend()
-plt.xlabel('Iterations')
-plt.yscale('log')
-plt.grid()
-plt.tight_layout()
-plt.savefig('toll_norm_convergence.png')
-
-
-# social cost plot
-pt.objective(social_cost, social_cost[0], 'Social Cost for driver')  
-plt.tight_layout()
-plt.savefig('grad_res/social_driver_profit.png')
+    tau_hist, gradient_hist = pga.inexact_pga(manhattan_game, tau,
+                                              approx_gradient, step_size,
+                                              max_iterations, 
+                                              epsilons=[err]*100000, 
+                                              verbose = False)
+    # find average tau value
+    tau_values = []
+    average_tau = {z: 0 for z in tau_hist[-1].keys()}
+    tau_ind = 0
+    for tau_ind in range(len(tau_hist)):
+        for z in tau.keys():
+            average_tau[z] = (average_tau[z]*tau_ind+tau_hist[tau_ind][z])/(tau_ind+1) 
+        tau_arr = np.array(list(average_tau.values())) 
+        tau_values.append(np.linalg.norm(tau_arr, 2))
+    # find average constraint violation
+    plot_title = f'Average Toll Value error = {err}'
+    pt.objective(tau_values, optimal_value = None, alg_name=plot_title)   
+    
+    #%% average tolling values for last approximation %%#
+    plt.figure()
+    # print('fig 3 = toll norm as function of designer iteration')
+    plt.title(f'at error = {err}')
+    plt.plot(tau_values, linewidth=3, label='total toll value')
+    plt.plot(avg_violation, label = 'total constraint violation', linewidth=3)
+    plt.legend()
+    plt.xlabel('Iterations')
+    plt.yscale('log')
+    plt.grid()
+    plt.tight_layout()
+    plt.savefig(f'toll_norm_convergence_{err}.png')
+    
+    
+    # social cost plot
+    pt.objective(social_cost, social_cost[0], 'Social Cost for driver')  
+    plt.tight_layout()
+    plt.savefig(f'grad_res/social_driver_profit_{err}.png')
+    
+    avg_tolls[err] = tau_values[-1]
+    avg_violations[err] = avg_violation[-1]
+    
+x_axis_labels = [e /200839.1820886145 for e in max_errors]
+if len(max_errors) > 1:
+    fig_width = 5.3 * 2
+    epsilon_plot = plt.figure(figsize=(fig_width,8))
+    toll_plot = epsilon_plot.add_subplot(2,1,1)
+    plt.plot(x_axis_labels, avg_tolls.values(), linewidth=5)
+    plt.ylabel('$\|| \hat{ τ}^k\||_2$', fontsize=18)
+    plt.grid()
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.setp(toll_plot.get_xticklabels(), visible=False, fontsize=18)
+    plt.setp(toll_plot.get_yticklabels(), fontsize=18)
+    plt.setp(toll_plot.get_yticklabels(minor=True), fontsize=18)
+    violation_plot = epsilon_plot.add_subplot(2, 1, 2, sharex=toll_plot) #
+    plt.plot(x_axis_labels, avg_violations.values(), linewidth=5)
+    plt.ylabel('$||A\hat{y}^k- b||_2$', fontsize=18)
+    plt.xscale('log')
+    plt.xlabel('$\epsilon$',fontsize=18)
+    plt.yscale('log')
+    plt.setp(violation_plot.get_xticklabels(), fontsize=18)
+    plt.setp(violation_plot.get_yticklabels(), fontsize=18)
+    plt.setp(violation_plot.get_yticklabels(minor=True), fontsize=18)
+    
+    plt.grid()
+    plt.subplots_adjust(hspace=.05)    
+    plt.show()

@@ -21,6 +21,30 @@ class queue_game:
     
     def __init__(self, total_mass = 1, epsilon=0.1, 
                  strictly_convex=True, uniform_density=False, flat=False):
+        """  Initialize a queued MDP game for rideshare drivers. The  
+        transition dynamics and costs are built on the ride demand data from
+        New York City's Taxi and Limousine Commission.
+        https://www1.nyc.gov/site/tlc/about/tlc-trip-record-data.page
+        
+        
+        Parameters
+        ----------
+        total_mass : float, optional
+            Mass of the driver fleet. The default is 1.
+        epsilon : float, optional
+            DESCRIPTION. The default is 0.1.
+        strictly_convex : TYPE, optional
+            DESCRIPTION. The default is True.
+        uniform_density : TYPE, optional
+            DESCRIPTION. The default is False.
+        flat : TYPE, optional
+            DESCRIPTION. The default is False.
+
+        Returns
+        -------
+        None.
+
+        """
         self.mass = total_mass
         trips_file = open(trips_filename, 'rb')
         m_transitions = pickle.load(trips_file)
@@ -209,7 +233,7 @@ class queue_game:
                     d_iz: float. Density in zone  z_ind at time t.
         """
         if not include_queues:
-            z_density = [{s[0]: sum([d_t[(s,a)] for a in self.action_dict[s]]) 
+            z_density = [{s: sum([d_t[(s,a)] for a in self.action_dict[s]]) 
                           for s in self.state_list} for d_t in sa_density]
         else:
             z_density = [{z: sum([

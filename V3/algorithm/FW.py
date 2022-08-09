@@ -58,7 +58,7 @@ def FW_dict(game, max_error, max_iterations, initial_density=None, verbose=True)
             err += sum([g_t[sa] * (y_1t[sa] - y_2t[sa]) for sa in g_t.keys()])
         if verbose:
             print(f'\r FW: error is {err} in {k} steps   ', end='')
-    print('')
+    # print('')
     return y_list, obj_list
     
 
