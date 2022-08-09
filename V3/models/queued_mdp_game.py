@@ -11,7 +11,8 @@ import pandas as pd
 import numpy as np
 
 
-directory = 'C:/Users/Sarah Li/Desktop/code/mdpcg/V3/' 
+directory =  'C:/Users/craba/Desktop/code/mdpcg/V3/'  
+# 'C:/Users/Sarah Li/Desktop/code/mdpcg/V3/' 
 month = 'jan' # 'dec' # 
 ints = 15 # 15 min
 trips_filename = directory+f'models/taxi_data/manhattan_transitions_{month}_{ints}min.pickle'
@@ -49,7 +50,8 @@ class queue_game:
         trips_file = open(trips_filename, 'rb')
         m_transitions = pickle.load(trips_file)
         trips_file.close()
-        if flat:
+        self.flat = flat
+        if self.flat:
             mdp = m_trans.transition_kernel_dict_flat(epsilon, m_transitions)
         else:
             mdp = m_trans.transition_kernel_dict(epsilon, m_transitions)
@@ -67,11 +69,11 @@ class queue_game:
         print(f' number of states {len(self.state_list)}')
         print(f' length of time horizon is {self.T}')
         self.max_q = 8 if self.T == 15 else 7
-        if flat:
+        if self.flat:
             self.max_q = 1
         self.constrain_queue = None
         
-        self.t0 = self.t0_density(uniform_density, flat) 
+        self.t0 = self.t0_density(uniform_density) 
         self.tolls = None
 
         demand_rate = m_cost.demand_rate(count_filename, self.T,  len(self.z_list))
@@ -132,7 +134,7 @@ class queue_game:
                 
         return grad
     
-    def t0_density(self, uniform_density, is_flat=False):
+    def t0_density(self, uniform_density):
         if uniform_density:
             # uniformly initialize density in the zeroth states
             t0 = {(z, 0): self.mass/len(self.z_list) for z in self.z_list}
@@ -141,7 +143,7 @@ class queue_game:
             scaling = self.mass / sum(t0.values())
             t0 = {s: d*scaling for s, d in t0.items()}
         # initialize all mass out of queues
-        if not is_flat:
+        if not self.flat:
             for q in range(1, self.max_q):
                 t0.update({(z,q): 0 for z in self.z_list})
 
@@ -167,39 +169,7 @@ class queue_game:
                 
             initial_s_density.append(self.propagate(d_t, t))
         return initial_sa_density
-    
-    
-    # def whole_length_density(self):
-    #     initial_s_density = [self.t0_density]
-    #     initial_sa_density = []
-    #     # at time 0, randomly generate a density that satisfies
-    #     # transition dynamics
-    #     for t in range(len(self.forward_P)):
-    #         s_density = initial_s_density[-1]
-    #         initial_sa_density.append({})
-    #         sa_density = initial_sa_density[-1]
-    #         for s in s_density.keys():
-    #             # print(f' current state {s} t = {t}')
-    #             policy = [np.random.random() 
-    #                       for _ in self.action_dict[s]]
-    #             policy_scale = sum(policy)
-    #             policy = [p / policy_scale for p in policy]
-    #             for a_ind in range(len(self.action_dict[s])):
-    #                 cur_act = self.action_dict[s][a_ind]
-    #                 sa_density[(s,cur_act) ] = \
-    #                     policy[a_ind] * s_density[s]
-    #         initial_s_density.append(
-    #             self.propagate(sa_density, t))
-    #     return initial_sa_density
-       
-    # def get_probability(self, sa_density, t):
-    #     p_density = {}
-    #     transition_t = self.forward_P[t]
-    #     for s in transition_t.keys():
-    #         p_density[s] = sum([sa_density[(s,a)] 
-    #                             for a in transition_t[s].keys()])
 
-    #     return p_density
             
     def propagate(self, sa_density, t):
         
@@ -207,14 +177,6 @@ class queue_game:
                                 for orig_s, prob in zip(val[0],val[1])]) 
                         for s, val in self.backward_P[t].items()}
         return next_density
-    
-        # transition_t = self.backward_P[t]
-        # next_density = {}
-        # for s in transition_t.keys():
-        #     orig_s, probs = transition_t[s]
-        #     next_density[s] = sum([probs[i] * sa_density[orig_s[i]] 
-        #                            for i in range(len(probs))])
-        # return next_density
 
     def get_zone_densities(self, sa_density, include_queues=False):
         """ Get the drivers not in queue in each zone 
@@ -240,17 +202,38 @@ class queue_game:
                 sum([d_t[((z,q),a)] for a in self.action_dict[(z,q)]])
                 for q in range(self.max_q)]) for z in self.z_list} 
                 for d_t in sa_density]
-        
-        #     z_density = [{z: 0 for z in self.z_list} for _ in sa_density]
-        # for i in range(len(sa_density)):
-        #     for sa, d_isa in sa_density[i].items():
-        #         if include_queues:
-        #             z_density[i][sa[0][0]] += d_isa
-        #         elif sa[0][1] == 0:   
-        #             z_density[i][sa[0][0]] += d_isa
-                
-        return z_density                
-                
+        return z_density   
+             
+    def get_average_density(self, z_density):
+        if self.flat:
+            avg_density = {
+                z: sum([z_density[t][z] for t in range(self.T)])/self.T 
+                for z in self.z_list}
+        else:
+            avg_density = {
+                z: sum([z_density[t][(z, 0)] for t in range(self.T)])/self.T 
+                for z in self.z_list}
+        return avg_density
+    
+    def get_violations(self, z_density, c_val, return_density=True):
+        constraint_violation= {}
+        v_density = {}
+        for z in z_density[0].keys():
+            threshold = [z_density[t][z] - c_val for t in range(self.T)]
+            violation =  sum([v for v in threshold if v > 0])/self.T
+            if violation > 0:
+                if self.flat:
+                    constraint_violation[z] = violation
+                else:
+                    # this should only happen once for the 0 level queue
+                    constraint_violation[z[0]] = violation
+                print(f'zone {z} violates constraint <{c_val} by {violation}')
+                if return_density:
+                    v_density[z] = [z_density[t][z] for t in range(self.T)]
+        if return_density:
+            return constraint_violation, v_density
+        else:
+            return constraint_violation
     def update_tolls(self, tau):
         self.tolls = {k: tau_k for k, tau_k in tau.items()}
             

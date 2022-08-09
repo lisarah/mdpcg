@@ -269,3 +269,75 @@ def plot_borough_progress(borough_str, plot_density, times):
     # ax.set_title("Zones in NYC")
     # draw_zone_map(ax, sf)
     plt.show()
+    
+    
+def summary_plot(z_density, constraint_violation, violation_density, 
+                 avg_density, constrained_value, T):
+    # determine min/max density levels
+    min_density = 1
+    max_density = 1
+    for t in range(T): 
+        min_density = min(list(z_density[t].values()) + [min_density])
+        max_density = max(list(z_density[t].values()) + [max_density])
+        
+    print(f'minimum density = {min_density}')
+    print(f'maximum density = {max_density}')
+
+    # set up heat map color map and bar plot legend
+    norm = mpl.colors.Normalize(vmin=(min_density), vmax=(max_density))
+    color_map = plt.get_cmap('coolwarm') # Spectral
+    bar_colors = []
+    for violation in constraint_violation.values():
+        R,G,B,A = color_map(norm(violation + constrained_value))
+        bar_colors.append([R,G,B])   
+    bar_labels = []  
+    for z in constraint_violation.keys():
+        found = False
+        for zone_name, ind in m_neighbors.ZONE_IND.items():
+            if found:
+                break
+            if ind == z:
+                bar_labels.append(zone_name)
+                found = True
+
+    # overall summary plot        
+    fig_width = 5.3 * 2
+    f = plt.figure(figsize=(fig_width,8))
+    
+    # bar plot upper left
+    ax_bar = f.add_subplot(2,2,1)
+    seq = [i for i in range(len(constraint_violation))] #
+    violations = []
+    for v in constraint_violation.values(): 
+        violations.append(v)
+    loc_ind = 0
+    for bar_ind in seq:
+        ax_bar.bar(loc_ind, violations[bar_ind] + constrained_value, 
+                width = 0.8,  #color=bar_colors[bar_ind], 
+                label=bar_labels[bar_ind])
+        loc_ind +=1
+    ax_bar.set_ylim([constrained_value, max_density])
+    ax_bar.xaxis.set_visible(False)
+    plt.legend(fontsize=13)
+
+    # line plot lower left
+    ax_time = f.add_subplot(2, 2, 3)
+    ax_time.plot(constrained_value * np.ones(T), 
+              linewidth = 6, alpha = 0.5, color=[0,0,0])
+    lines = []
+    for line in violation_density.values(): 
+        lines.append(line)
+    for line_ind in seq:
+        plt.plot(lines[line_ind], linewidth=3, # color=bar_colors[line_ind], 
+                  label=bar_labels[line_ind])
+    plt.xlabel(r"Time",fontsize=13)
+    plt.grid()
+    plt.legend(fontsize=13)
+    
+    
+    # heat map right side
+    ax_map = f.add_subplot(1,2,2)
+    draw_borough(ax_map, avg_density, 'Manhattan', 'average', color_map, norm)
+    ax_map.xaxis.set_visible(False)
+    ax_map.yaxis.set_visible(False)
+    plt.show()
