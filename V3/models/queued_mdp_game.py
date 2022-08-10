@@ -11,7 +11,8 @@ import pandas as pd
 import numpy as np
 
 
-directory =  'C:/Users/craba/Desktop/code/mdpcg/V3/'  
+directory =  'C:/Users/Sarah Li/Desktop/code/mdpcg/V3/' 
+# 'C:/Users/craba/Desktop/code/mdpcg/V3/'  
 # 'C:/Users/Sarah Li/Desktop/code/mdpcg/V3/' 
 month = 'jan' # 'dec' # 
 ints = 15 # 15 min
@@ -234,6 +235,25 @@ class queue_game:
             return constraint_violation, v_density
         else:
             return constraint_violation
+    
+    def get_violation_subset(self, z_density, states, c_val):
+        if type(states[0]) == tuple and self.flat:
+        # z_density is flat but states are given in tuples
+            v_key = [s[0] for s in states] 
+            z_key = [s[0] for s in states] 
+        elif type(states[0]) != tuple and not self.flat:
+        # z_density has tuple keys but states is given in zones
+            v_key = states 
+            z_key = [(s,0) for s in states]
+            
+        v_density = {v: [z_density[t][z] for t in range(self.T)] 
+                     for v, z in zip(v_key, z_key)}
+        constraint_violation = {
+            v: sum([max(d_zt-c_val, 0) for d_zt in v_density[v]])/self.T
+            for v in v_density.keys()}
+
+        return v_density, constraint_violation
+        
     def update_tolls(self, tau):
         self.tolls = {k: tau_k for k, tau_k in tau.items()}
             

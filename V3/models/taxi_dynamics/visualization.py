@@ -286,17 +286,18 @@ def summary_plot(z_density, constraint_violation, violation_density,
     # set up heat map color map and bar plot legend
     norm = mpl.colors.Normalize(vmin=(min_density), vmax=(max_density))
     color_map = plt.get_cmap('coolwarm') # Spectral
-    bar_colors = []
-    for violation in constraint_violation.values():
-        R,G,B,A = color_map(norm(violation + constrained_value))
-        bar_colors.append([R,G,B])   
     bar_labels = []  
-    for z in constraint_violation.keys():
+    for z in violation_density.keys():
         found = False
+        if type(z) == tuple:
+            z_lookup = z[0]
+        else:
+            z_lookup = z
+        # this can be optimized by reversing the look up table key/value
         for zone_name, ind in m_neighbors.ZONE_IND.items():
             if found:
                 break
-            if ind == z:
+            if ind == z_lookup:
                 bar_labels.append(zone_name)
                 found = True
 
@@ -306,14 +307,14 @@ def summary_plot(z_density, constraint_violation, violation_density,
     
     # bar plot upper left
     ax_bar = f.add_subplot(2,2,1)
-    seq = [i for i in range(len(constraint_violation))] #
+    seq = [i for i in range(len(violation_density))] #
     violations = []
     for v in constraint_violation.values(): 
         violations.append(v)
     loc_ind = 0
     for bar_ind in seq:
         ax_bar.bar(loc_ind, violations[bar_ind] + constrained_value, 
-                width = 0.8,  #color=bar_colors[bar_ind], 
+                width = 0.8,  
                 label=bar_labels[bar_ind])
         loc_ind +=1
     ax_bar.set_ylim([constrained_value, max_density])

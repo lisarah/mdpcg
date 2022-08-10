@@ -18,19 +18,18 @@ import matplotlib as mpl
 import models.test_model as test
 import pickle
 
-epsilon = 100 # error in approximate solution of drivers learning
 # epsilon_list = [5e3]  # [1e5, 2e4, 2e3, 1e3]
 borough = 'Manhattan' # borough of interest
 mass = 10000 # game population size
 constrained_value = 350 # 350  for flat # maximum driver density per state
-max_errors = [5000]#[10000, 5000, 1000, 500, 100]
-max_iterations = 10 # number of iterations of dual ascent
+max_errors = [1000]#[10000, 5000, 1000, 500, 100]
+max_iterations = 2000 # number of iterations of dual ascent
 toll_queues = False
 save_last_toll_results = True
-save_plots = False
+save_plots = True
 # game definition with initial distribution
 # print(f'cur seed {np.random.get_state[1][0]}')
-np.random.seed(3239535799)
+# np.random.seed(3239535799)
 manhattan_game = queued_game.queue_game(mass, 0.01, uniform_density=True,
                                         flat=False) 
 
@@ -152,7 +151,9 @@ for err in max_errors:
     
     avg_tolls[err] = tau_values[-1]
     avg_violations[err] = avg_violation[-1]
-
+    
+    
+#%% plots %%#
 # plot errors vs last average toll value and last violation violation
 x_axis_labels = [e /200839.1820886145 for e in max_errors]
 if len(max_errors) > 1:
@@ -195,8 +196,10 @@ if save_last_toll_results:
     
 # plot the summary plot of the tolled average results
 z_density = manhattan_game.get_zone_densities(avg_distribution, False)
-constraint_violation, violation_density = manhattan_game.get_violations(
-    z_density, constrained_value)
+# constraint_violation, violation_density = manhattan_game.get_violations(
+#     z_density, constrained_value)
+violation_density, constraint_violation = manhattan_game.get_violation_subset(
+    z_density, constrained_zones, constrained_value)
 avg_density = manhattan_game.get_average_density(z_density)
 
 visual.summary_plot(z_density, constraint_violation, violation_density, 
