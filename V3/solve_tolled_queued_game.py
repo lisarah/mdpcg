@@ -23,7 +23,7 @@ borough = 'Manhattan' # borough of interest
 mass = 10000 # game population size
 constrained_value = 350 # 350  for flat # maximum driver density per state
 max_errors = [5000]#[10000, 5000, 1000, 500, 100]
-max_iterations = 10 # number of iterations of dual ascent
+max_iterations = 2000 # number of iterations of dual ascent
 toll_queues = False
 save_last_toll_results = True
 save_plots = True
@@ -35,9 +35,19 @@ manhattan_game = queued_game.queue_game(mass, 0.01, uniform_density=True,
 
 initial_density = manhattan_game.get_density()
 y_res, obj_hist = fw.FW_dict(manhattan_game, max_errors[-1], max_iterations)
-
 # set constraints 
 constrained_zones = [161, 162, 236, 237] #[161,43,68,79,231,236,237,114]# manhattan_game.z_list
+
+# plot the unconstrained 
+# get summary friendly densities
+unconstrained_z = manhattan_game.get_zone_densities(y_res[-1], False)
+violation_density, constraint_violation = manhattan_game.get_violation_subset(
+    unconstrained_z, constrained_zones, constrained_value)
+unconstrained_avg = manhattan_game.get_average_density(unconstrained_z)
+visual.summary_plot(unconstrained_z, constraint_violation, violation_density, 
+                    unconstrained_avg, constrained_value)
+unconstrained_max = 435
+
 manhattan_game.set_constraints(constrained_zones, constrained_value)
 grad, violation_norm = manhattan_game.get_constrained_gradient(
     y_res[-1], return_violation = True)
@@ -205,4 +215,7 @@ avg_toll_time = {v_key: [average_tau[((v_key, 0), t)] for t in range(T)]
                  for v_key in violation_density.keys()}
 
 visual.summary_plot(z_density, constraint_violation, violation_density, 
-                    avg_density, constrained_value, avg_toll_time)
+                    avg_density, constrained_value, avg_toll_time, 
+                    max_d=unconstrained_max)
+
+

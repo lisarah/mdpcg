@@ -272,7 +272,7 @@ def plot_borough_progress(borough_str, plot_density, times):
     
     
 def summary_plot(z_density, constraint_violation, violation_density, 
-                 avg_density, constrained_value, tolls=None):
+                 avg_density, constrained_value, tolls=None, max_d=None):
     T = len(z_density)
     # determine min/max density levels
     min_density = 1
@@ -280,7 +280,8 @@ def summary_plot(z_density, constraint_violation, violation_density,
     for t in range(T): 
         min_density = min(list(z_density[t].values()) + [min_density])
         max_density = max(list(z_density[t].values()) + [max_density])
-        
+    if max_d != None:
+        max_density = max_d
     print(f'minimum density = {min_density}')
     print(f'maximum density = {max_density}')
 
@@ -344,6 +345,7 @@ def summary_plot(z_density, constraint_violation, violation_density,
     for line_ind in seq:
         plt.plot(lines[line_ind], linewidth=3, # color=bar_colors[line_ind], 
                   label=bar_labels[line_ind])
+    ax_time.set_ylim([150, max_density])
     plt.xlabel(r"Time",fontsize=13)
     plt.grid()
     plt.legend(fontsize=13)
