@@ -87,8 +87,6 @@ def congestion_cost_dict(ride_demand, forward_trans, avg_trip_dist, epsilon=0):
                 cost_t[(z_j, pu_action)] = (R_tjk, C_tjk)
             else: # original states, queue level = 0
                 actions = list(forward_trans[t][z_j].keys())
-                # if t == 10 and z_j == (161, 0):
-                #     print(f'at {z_j} :{actions}')
                 for a in actions:
                     if a == pu_action:
                         s_ind = state_ind[z_j[0]]
