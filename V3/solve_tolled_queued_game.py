@@ -63,7 +63,7 @@ for t in range(T):
         za_ind += len(manhattan_game.action_dict[(z, 0)])
         z_ind += 1 
 two_norm_A = np.linalg.norm(A_arr,2)
-step_size = alpha/2/(two_norm_A**2)
+step_size = alpha/2/(two_norm_A**2) *2
 print(f'norm of A is {two_norm_A}, step size is {step_size}')
 # step_size = 0.12 #  0.0001
 
