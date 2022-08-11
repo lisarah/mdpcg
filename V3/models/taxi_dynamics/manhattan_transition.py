@@ -109,6 +109,7 @@ def transition_kernel_dict(epsilon, transitions_list):
     backward_transitions = []
     state_list = []
     max_queue_level = 8 if len(transitions_list) == 15 else 7
+    # todo: this should and can be removed.
     truncate_zones =  [103, 104, 105, 153, 194, 202]
     for z_i in manhattan.zone_neighbors:
         if z_i not in truncate_zones:
@@ -133,12 +134,12 @@ def transition_kernel_dict(epsilon, transitions_list):
     for t_i in transitions_list:
         forward_transitions.append({s:{a:([],[]) for a in action_dict[s]} 
                                     for s in state_list})
-        # if transitions_list.index(t_i) == 0:
-        #     print(forward_transitions[-1].keys())
+
         backward_transitions.append({s: ([], []) for s in state_list})
         
-        # action for queue_level > 0 is just to drop
+        # Add actions depending on state
         for s in state_list:
+            # action for queue_level > 0 is just to drop
             if s[1] > 0:
                 forward_transitions[-1][s][max_action][0].append((s[0], s[1] - 1))
                 forward_transitions[-1][s][max_action][1].append(1)

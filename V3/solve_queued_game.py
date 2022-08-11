@@ -30,4 +30,4 @@ constraint_violation, violation_density = manhattan_game.get_violations(
 avg_density = manhattan_game.get_average_density(z_density)
 
 visual.summary_plot(z_density, constraint_violation, violation_density, 
-                    avg_density, constrained_value, T)
+                    avg_density, constrained_value)

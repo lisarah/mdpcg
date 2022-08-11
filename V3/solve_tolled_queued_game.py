@@ -22,8 +22,8 @@ import pickle
 borough = 'Manhattan' # borough of interest
 mass = 10000 # game population size
 constrained_value = 350 # 350  for flat # maximum driver density per state
-max_errors = [1000]#[10000, 5000, 1000, 500, 100]
-max_iterations = 2000 # number of iterations of dual ascent
+max_errors = [5000]#[10000, 5000, 1000, 500, 100]
+max_iterations = 10 # number of iterations of dual ascent
 toll_queues = False
 save_last_toll_results = True
 save_plots = True
@@ -193,14 +193,16 @@ if save_last_toll_results:
                    'last_average_density': avg_distribution}
     pickle.dump(err_results, open_file)
     open_file.close()
-    
+
 # plot the summary plot of the tolled average results
+# get summary friendly densities
 z_density = manhattan_game.get_zone_densities(avg_distribution, False)
-# constraint_violation, violation_density = manhattan_game.get_violations(
-#     z_density, constrained_value)
 violation_density, constraint_violation = manhattan_game.get_violation_subset(
     z_density, constrained_zones, constrained_value)
 avg_density = manhattan_game.get_average_density(z_density)
+# derive time varying tolls of the constrained states:
+avg_toll_time = {v_key: [average_tau[((v_key, 0), t)] for t in range(T)]
+                 for v_key in violation_density.keys()}
 
 visual.summary_plot(z_density, constraint_violation, violation_density, 
-                    avg_density, constrained_value, T)
+                    avg_density, constrained_value, avg_toll_time)

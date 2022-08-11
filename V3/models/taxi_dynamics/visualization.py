@@ -272,7 +272,8 @@ def plot_borough_progress(borough_str, plot_density, times):
     
     
 def summary_plot(z_density, constraint_violation, violation_density, 
-                 avg_density, constrained_value, T):
+                 avg_density, constrained_value, tolls=None):
+    T = len(z_density)
     # determine min/max density levels
     min_density = 1
     max_density = 1
@@ -304,22 +305,34 @@ def summary_plot(z_density, constraint_violation, violation_density,
     # overall summary plot        
     fig_width = 5.3 * 2
     f = plt.figure(figsize=(fig_width,8))
-    
-    # bar plot upper left
-    ax_bar = f.add_subplot(2,2,1)
     seq = [i for i in range(len(violation_density))] #
-    violations = []
-    for v in constraint_violation.values(): 
-        violations.append(v)
-    loc_ind = 0
-    for bar_ind in seq:
-        ax_bar.bar(loc_ind, violations[bar_ind] + constrained_value, 
-                width = 0.8,  
-                label=bar_labels[bar_ind])
-        loc_ind +=1
-    ax_bar.set_ylim([constrained_value, max_density])
-    ax_bar.xaxis.set_visible(False)
-    plt.legend(fontsize=13)
+    # if toll values are given, plot tolls on upper left
+    if tolls != None:
+        ax_toll_val = f.add_subplot(2,2,1) # (2,2,2)
+        toll_time_vary = []
+        for line in tolls.values(): 
+            toll_time_vary.append(line)
+        for line_ind in seq:
+            ax_toll_val.plot(toll_time_vary[line_ind], linewidth=3, 
+                             label=bar_labels[line_ind])
+        plt.setp(ax_toll_val.get_xticklabels(), visible=False)
+        plt.grid()
+    else:
+    # bar plot upper left
+        ax_bar = f.add_subplot(2,2,1)
+        
+        violations = []
+        for v in constraint_violation.values(): 
+            violations.append(v)
+        loc_ind = 0
+        for bar_ind in seq:
+            ax_bar.bar(loc_ind, violations[bar_ind] + constrained_value, 
+                    width = 0.8,  
+                    label=bar_labels[bar_ind])
+            loc_ind +=1
+        ax_bar.set_ylim([constrained_value, max_density])
+        ax_bar.xaxis.set_visible(False)
+        plt.legend(fontsize=13)
 
     # line plot lower left
     ax_time = f.add_subplot(2, 2, 3)
