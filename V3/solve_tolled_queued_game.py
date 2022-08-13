@@ -22,7 +22,7 @@ import pickle
 borough = 'Manhattan' # borough of interest
 mass = 10000 # game population size
 constrained_value = 350 # 350  for flat # maximum driver density per state
-max_errors = [5000]#[10000, 5000, 1000, 500, 100]
+max_errors = [1000]#[10000, 5000, 1000, 500, 100]
 max_iterations = 2000 # number of iterations of dual ascent
 toll_queues = False
 save_last_toll_results = True
@@ -167,34 +167,50 @@ for err in max_errors:
 # plot errors vs last average toll value and last violation violation
 x_axis_labels = [e /200839.1820886145 for e in max_errors]
 if len(max_errors) > 1:
-    fig_width = 5.3 * 2
-    epsilon_plot = plt.figure(figsize=(fig_width,8))
-    toll_plot = epsilon_plot.add_subplot(2,1,1)
-    plt.plot(x_axis_labels, avg_tolls.values(), linewidth=5)
-    plt.ylabel('$\|| \hat{ τ}^k\||_2$', fontsize=18)
-    plt.grid()
-    plt.xscale('log')
-    plt.yscale('log')
-    plt.setp(toll_plot.get_xticklabels(), visible=False, fontsize=18)
-    plt.setp(toll_plot.get_yticklabels(), fontsize=18)
-    plt.setp(toll_plot.get_yticklabels(minor=True), fontsize=18)
-    violation_plot = epsilon_plot.add_subplot(2, 1, 2, sharex=toll_plot) #
-    plt.plot(x_axis_labels, avg_violations.values(), linewidth=5)
-    plt.ylabel('$||A\hat{y}^k- b||_2$', fontsize=18)
-    plt.xscale('log')
-    plt.xlabel('$\epsilon$',fontsize=18)
-    plt.yscale('log')
-    plt.setp(violation_plot.get_xticklabels(), fontsize=18)
-    plt.setp(violation_plot.get_yticklabels(), fontsize=18)
-    plt.setp(violation_plot.get_yticklabels(minor=True), fontsize=18)
+    # fig_width = 6
+    # epsilon_plot = plt.figure(figsize=(fig_width,3))
+    # toll_plot = epsilon_plot.add_subplot(1, 2,1)
+    # plt.plot(x_axis_labels, avg_tolls.values(), linewidth=3)
+    # # plt.ylabel('$\|| \hat{ τ}^k\||_2$') # , fontsize=18
+    # plt.grid()
+    # plt.xscale('log')
+    # plt.yscale('log')
+    # plt.xlabel('$\epsilon$', fontsize=12) #
+    # # plt.setp(toll_plot.get_xticklabels(), visible=False, fontsize=18)
+    # # plt.setp(toll_plot.get_yticklabels(), fontsize=18)
+    # # plt.setp(toll_plot.get_yticklabels(minor=True), fontsize=18)
+    # violation_plot = epsilon_plot.add_subplot(1,2, 2,sharey=toll_plot) # 
+    # plt.plot(x_axis_labels, avg_violations.values(), linewidth=3)
+    # # plt.ylabel('$||A\hat{y}^k- b||_2$') # , fontsize=18
+    # plt.xscale('log')
+    # plt.xlabel('$\epsilon$' ,fontsize=12) #
+    # plt.yscale('log')
+    # # plt.setp(violation_plot.get_xticklabels(), fontsize=18)
+    # # plt.setp(violation_plot.get_yticklabels(), fontsize=18)
+    # # plt.setp(violation_plot.get_yticklabels(minor=True), fontsize=18)
+    # plt.setp(violation_plot.get_yticklabels(), visible=False)
     
+    # plt.grid()
+    # plt.subplots_adjust(hspace=-10)    
+    # plt.show()
+    
+    # just plot them on the same line?
+    plt.figure()
+    plt.plot(x_axis_labels, avg_tolls.values(), linewidth=3, 
+             label='$\|| \overline{τ}^k\||_2$')
+    plt.plot(x_axis_labels, avg_violations.values(), linewidth=3, 
+             label='$||A\overline{y}^k- b||_2$')
+    plt.xlabel('$\epsilon$', fontsize=12) # 
     plt.grid()
-    plt.subplots_adjust(hspace=.05)    
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.legend()
     plt.show()
+    
 
 if save_last_toll_results:
-    open_file = open('grad_res/err_5000_toll_results.pickle', 'wb')
-    err_results = {'max_error': 5000,
+    open_file = open(f'grad_res/err_{max_errors[-1]}_toll_results.pickle', 'wb')
+    err_results = {'max_error': max_errors[-1],
                    'tau_hist': tau_hist,
                    'gradient_hist':gradient_hist,
                    'avg_violation': avg_violation,

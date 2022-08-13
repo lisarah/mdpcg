@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 
 
-directory =  'C:/Users/Sarah Li/Desktop/code/mdpcg/V3/' 
+directory = 'C:/Users/craba/Desktop/code/mdpcg/V3/'  
 # 'C:/Users/craba/Desktop/code/mdpcg/V3/'  
 # 'C:/Users/Sarah Li/Desktop/code/mdpcg/V3/' 
 month = 'jan' # 'dec' # 
@@ -221,7 +221,7 @@ class queue_game:
         v_density = {}
         for z in z_density[0].keys():
             threshold = [z_density[t][z] - c_val for t in range(self.T)]
-            violation =  sum([v for v in threshold if v > 0])/self.T
+            violation =  sum([v for v in threshold if v > 0])
             if violation > 0:
                 if self.flat:
                     constraint_violation[z] = violation
