@@ -22,7 +22,7 @@ import pickle
 borough = 'Manhattan' # borough of interest
 mass = 10000 # game population size
 constrained_value = 350 # 350  for flat # maximum driver density per state
-max_errors = [5000]#[10000, 5000, 1000, 500, 100]
+max_errors = [1000]#[10000, 5000, 1000, 500, 100]
 max_iterations = 2000 # number of iterations of dual ascent
 toll_queues = False
 save_last_toll_results = True
@@ -46,7 +46,7 @@ violation_density, constraint_violation = manhattan_game.get_violation_subset(
 unconstrained_avg = manhattan_game.get_average_density(unconstrained_z)
 visual.summary_plot(unconstrained_z, constraint_violation, violation_density, 
                     unconstrained_avg, constrained_value)
-unconstrained_max = 435
+unconstrained_max = 450
 
 manhattan_game.set_constraints(constrained_zones, constrained_value)
 grad, violation_norm = manhattan_game.get_constrained_gradient(
@@ -95,15 +95,21 @@ for err in max_errors:
     # bookkeeping stats
     avg_distribution = [{sa: 0 for sa in y_res[-1][t].keys()} 
                         for t in range(T)]
+    last_distribution = [{sa: 0 for sa in y_res[-1][t].keys()} 
+                        for t in range(T)]
     avg_violation = []
+    last_violation = []
     social_cost = []
+    last_tau_norm = []
     # define dual ascent approximate gradient update.
     # input approx_err comes from inexact_pga
     def approx_gradient(game, cur_tau, approx_err, k): 
         game.update_tolls(cur_tau)
         # solve first game
         approx_y, obj_hist = fw.FW_dict(game, approx_err, max_iterations, 
-                                        initial_density, verbose=False)  
+                                        initial_density, verbose=False) 
+
+        last_distribution.append(approx_y[-1])
         for t in range(T):
             for sa in approx_y[-1][t].keys():
                 avg_distribution[t][sa] = (
@@ -114,8 +120,10 @@ for err in max_errors:
         _, avg_violation_k = manhattan_game.get_constrained_gradient(
             avg_distribution, return_violation=True)
         avg_violation.append(avg_violation_k)
+        last_violation.append(violation)
         social_cost.append(game.get_social_cost(avg_distribution))
         tau_norm = np.linalg.norm(np.array(list(cur_tau.values())), 2)
+        last_tau_norm.append(tau_norm)
         print(f'\r {k}: average violation {round(avg_violation[-1],2)}, '
               f'tau norm {tau_norm}   ', end ='')  
         return gradient
@@ -194,7 +202,7 @@ if len(max_errors) > 1:
 
 if save_last_toll_results:
     open_file = open('grad_res/err_5000_toll_results.pickle', 'wb')
-    err_results = {'max_error': 5000,
+    err_results = {'max_error': max_errors[-1],
                    'tau_hist': tau_hist,
                    'gradient_hist':gradient_hist,
                    'avg_violation': avg_violation,
@@ -217,5 +225,32 @@ avg_toll_time = {v_key: [average_tau[((v_key, 0), t)] for t in range(T)]
 visual.summary_plot(z_density, constraint_violation, violation_density, 
                     avg_density, constrained_value, avg_toll_time, 
                     max_d=unconstrained_max)
+
+# get the last iterate vs average iterate comparison
+# last_iterate_violations = []
+# for y_t in last_distribution:
+#     z_t = manhattan_game.get_zone_densities(y_t, False)
+#     _, c_t = manhattan_game.get_violation_subset(
+#         z_t, constrained_zones, constrained_value)
+#     last_iterate_violations.append(np.linalg.norm(
+#         np.array(list(c_t.values())), 2))
+    
+# plot this in the convergence figure
+
+#%% average tolling values for last approximation %%#
+plt.figure()
+# print('fig 3 = toll norm as function of designer iteration')
+# plt.title(f'at error = {err}')
+plt.plot(last_violation, linewidth=5, alpha=0.4, label='last iterate violation', color='C1')
+plt.plot(tau_values, linewidth=3, label='average toll value', color='C0')
+plt.plot(avg_violation, label = 'average violation', linewidth=3, color='C1')
+plt.legend()
+plt.xlabel('Iterations')
+plt.yscale('log')
+plt.grid()
+plt.tight_layout()
+plt.show()
+if save_plots:
+    plt.savefig(f'toll_norm_convergence_{err}.png')
 
 

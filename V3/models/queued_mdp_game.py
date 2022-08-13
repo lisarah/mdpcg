@@ -220,8 +220,8 @@ class queue_game:
         constraint_violation= {}
         v_density = {}
         for z in z_density[0].keys():
-            threshold = [z_density[t][z] - c_val for t in range(self.T)]
-            violation =  sum([v for v in threshold if v > 0])/self.T
+            threshold = [max(0, z_density[t][z]-c_val) for t in range(self.T)]
+            violation =  np.linalg.norm(np.array(threshold), 2) #sum([v for v in threshold if v > 0])
             if violation > 0:
                 if self.flat:
                     constraint_violation[z] = violation
