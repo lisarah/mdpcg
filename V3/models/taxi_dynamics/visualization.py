@@ -357,3 +357,53 @@ def summary_plot(z_density, constraint_violation, violation_density,
     ax_map.xaxis.set_visible(False)
     ax_map.yaxis.set_visible(False)
     plt.show()
+    
+def toll_summary_plot(violation_density, tolls,
+                   constrained_value, max_d, min_d=150, T=12):
+    bar_labels = []  
+    for z in violation_density.keys():
+        found = False
+        if type(z) == tuple:
+            z_lookup = z[0]
+        else:
+            z_lookup = z
+        # this can be optimized by reversing the look up table key/value
+        for zone_name, ind in m_neighbors.ZONE_IND.items():
+            if found:
+                break
+            if ind == z_lookup:
+                bar_labels.append(zone_name)
+                found = True
+
+    # overall summary plot        
+    fig_width = 5.3 * 2
+    f = plt.figure(figsize=(fig_width,8))
+    seq = [i for i in range(len(violation_density))] #
+    # if toll values are given, plot tolls on upper left
+    ax_toll_val = f.add_subplot(2,1,1) # (2,2,2)
+    toll_time_vary = []
+    for line in tolls.values(): 
+        toll_time_vary.append(line)
+    for line_ind in seq:
+        ax_toll_val.plot(toll_time_vary[line_ind], linewidth=3, 
+                         label=bar_labels[line_ind], marker='D', markersize=10)
+    plt.setp(ax_toll_val.get_xticklabels(), visible=False)
+    plt.grid()
+
+    # line plot lower left
+    ax_time = f.add_subplot(2, 1, 2,sharex=ax_toll_val)
+    ax_time.plot(constrained_value * np.ones(T), 
+              linewidth = 6, alpha = 0.5, color=[0,0,0])
+    lines = []
+    for line in violation_density.values(): 
+        lines.append(line)
+    for line_ind in seq:
+        plt.plot(lines[line_ind], linewidth=3, 
+                  label=bar_labels[line_ind], marker='D', markersize=10)
+    ax_time.set_ylim([min_d, max_d])
+    plt.xlabel(r"Time",fontsize=12)
+    plt.grid()
+    plt.legend(fontsize=10)
+    plt.subplots_adjust(hspace=0.05)   
+    plt.show()
+    

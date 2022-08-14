@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 
 
-directory =  'C:/Users/Sarah Li/Desktop/code/mdpcg/V3/' 
+directory = ''  
 # 'C:/Users/craba/Desktop/code/mdpcg/V3/'  
 # 'C:/Users/Sarah Li/Desktop/code/mdpcg/V3/' 
 month = 'jan' # 'dec' # 

@@ -175,33 +175,49 @@ for err in max_errors:
 # plot errors vs last average toll value and last violation violation
 x_axis_labels = [e /200839.1820886145 for e in max_errors]
 if len(max_errors) > 1:
-    fig_width = 5.3 * 2
-    epsilon_plot = plt.figure(figsize=(fig_width,8))
-    toll_plot = epsilon_plot.add_subplot(2,1,1)
-    plt.plot(x_axis_labels, avg_tolls.values(), linewidth=5)
-    plt.ylabel('$\|| \hat{ τ}^k\||_2$', fontsize=18)
-    plt.grid()
-    plt.xscale('log')
-    plt.yscale('log')
-    plt.setp(toll_plot.get_xticklabels(), visible=False, fontsize=18)
-    plt.setp(toll_plot.get_yticklabels(), fontsize=18)
-    plt.setp(toll_plot.get_yticklabels(minor=True), fontsize=18)
-    violation_plot = epsilon_plot.add_subplot(2, 1, 2, sharex=toll_plot) #
-    plt.plot(x_axis_labels, avg_violations.values(), linewidth=5)
-    plt.ylabel('$||A\hat{y}^k- b||_2$', fontsize=18)
-    plt.xscale('log')
-    plt.xlabel('$\epsilon$',fontsize=18)
-    plt.yscale('log')
-    plt.setp(violation_plot.get_xticklabels(), fontsize=18)
-    plt.setp(violation_plot.get_yticklabels(), fontsize=18)
-    plt.setp(violation_plot.get_yticklabels(minor=True), fontsize=18)
+    # fig_width = 6
+    # epsilon_plot = plt.figure(figsize=(fig_width,3))
+    # toll_plot = epsilon_plot.add_subplot(1, 2,1)
+    # plt.plot(x_axis_labels, avg_tolls.values(), linewidth=3)
+    # # plt.ylabel('$\|| \hat{ τ}^k\||_2$') # , fontsize=18
+    # plt.grid()
+    # plt.xscale('log')
+    # plt.yscale('log')
+    # plt.xlabel('$\epsilon$', fontsize=12) #
+    # # plt.setp(toll_plot.get_xticklabels(), visible=False, fontsize=18)
+    # # plt.setp(toll_plot.get_yticklabels(), fontsize=18)
+    # # plt.setp(toll_plot.get_yticklabels(minor=True), fontsize=18)
+    # violation_plot = epsilon_plot.add_subplot(1,2, 2,sharey=toll_plot) # 
+    # plt.plot(x_axis_labels, avg_violations.values(), linewidth=3)
+    # # plt.ylabel('$||A\hat{y}^k- b||_2$') # , fontsize=18
+    # plt.xscale('log')
+    # plt.xlabel('$\epsilon$' ,fontsize=12) #
+    # plt.yscale('log')
+    # # plt.setp(violation_plot.get_xticklabels(), fontsize=18)
+    # # plt.setp(violation_plot.get_yticklabels(), fontsize=18)
+    # # plt.setp(violation_plot.get_yticklabels(minor=True), fontsize=18)
+    # plt.setp(violation_plot.get_yticklabels(), visible=False)
     
+    # plt.grid()
+    # plt.subplots_adjust(hspace=-10)    
+    # plt.show()
+    
+    # just plot them on the same line?
+    plt.figure()
+    plt.plot(x_axis_labels, avg_tolls.values(), linewidth=3, 
+             label='$\|| \overline{τ}^k\||_2$')
+    plt.plot(x_axis_labels, avg_violations.values(), linewidth=3, 
+             label='$||A\overline{y}^k- b||_2$')
+    plt.xlabel('$\epsilon$', fontsize=12) # 
     plt.grid()
-    plt.subplots_adjust(hspace=.05)    
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.legend()
     plt.show()
+    
 
 if save_last_toll_results:
-    open_file = open('grad_res/err_5000_toll_results.pickle', 'wb')
+    open_file = open(f'grad_res/err_{max_errors[-1]}_toll_results.pickle', 'wb')
     err_results = {'max_error': max_errors[-1],
                    'tau_hist': tau_hist,
                    'gradient_hist':gradient_hist,
@@ -225,25 +241,45 @@ avg_toll_time = {v_key: [average_tau[((v_key, 0), t)] for t in range(T)]
 visual.summary_plot(z_density, constraint_violation, violation_density, 
                     avg_density, constrained_value, avg_toll_time, 
                     max_d=unconstrained_max)
-
-# get the last iterate vs average iterate comparison
-# last_iterate_violations = []
-# for y_t in last_distribution:
-#     z_t = manhattan_game.get_zone_densities(y_t, False)
-#     _, c_t = manhattan_game.get_violation_subset(
-#         z_t, constrained_zones, constrained_value)
-#     last_iterate_violations.append(np.linalg.norm(
-#         np.array(list(c_t.values())), 2))
+visual.toll_summary_plot(violation_density, avg_toll_time, constrained_value,
+                         450)
     
-# plot this in the convergence figure
+# social vs convergence
+conv_vs_social = plt.figure()
+convergence_plot = conv_vs_social.add_subplot(1,2,1)
+convergence_plot.plot(last_violation, linewidth=3, alpha=0.4, 
+                      label='last iterate violation', color='C1')
+convergence_plot.plot(last_tau_norm, alpha=0.4, linewidth=3, 
+                      label='last iterate toll value', color='C0')
+convergence_plot.plot(tau_values, linewidth=3, label='average toll value', 
+                      color='C0')
+convergence_plot.plot(avg_violation, label = 'average violation', 
+                      linewidth=3, color='C1')
+
+plt.legend(fontsize='12')
+plt.xlabel('Iterations')
+plt.yscale('log')
+plt.grid()
+social_plot = conv_vs_social.add_subplot(1,2, 2) # 
+social_plot.plot(np.linspace(1, len(social_cost),len(social_cost)), 
+     [((x - social_cost[0])/social_cost[0]) for x in social_cost], 
+     linewidth=3, 
+     label='social cost')
+plt.legend(fontsize='12')
+plt.xlabel(r"Iterations")
+plt.xscale('log')
+plt.grid()
+plt.show()
 
 #%% average tolling values for last approximation %%#
 plt.figure()
 # print('fig 3 = toll norm as function of designer iteration')
 # plt.title(f'at error = {err}')
-plt.plot(last_violation, linewidth=5, alpha=0.4, label='last iterate violation', color='C1')
+plt.plot(last_violation, linewidth=3, alpha=0.4, label='last iterate violation', color='C1')
 plt.plot(tau_values, linewidth=3, label='average toll value', color='C0')
 plt.plot(avg_violation, label = 'average violation', linewidth=3, color='C1')
+plt.plot(last_tau_norm, label = 'last iterate toll value', linewidth=3, color='C0')
+
 plt.legend()
 plt.xlabel('Iterations')
 plt.yscale('log')
